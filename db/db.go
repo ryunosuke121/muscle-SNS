@@ -8,6 +8,7 @@ import (
 	"os"
 )
 
+// DBに接続する
 func NewDB() *gorm.DB {
 	url := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", os.Getenv("MYSQL_USER"),
 		os.Getenv("MYSQL_PASSWORD"), os.Getenv("MYSQL_HOST"),
@@ -21,6 +22,7 @@ func NewDB() *gorm.DB {
 	return db
 }
 
+// DBを閉じる
 func CloseDB(db *gorm.DB) {
 	sqlDB, _ := db.DB()
 	if err := sqlDB.Close(); err != nil {
