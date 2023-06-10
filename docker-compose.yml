@@ -1,0 +1,43 @@
+version: '3' # composeファイルのバージョン
+services:
+  web:
+    # サービス名
+    container_name: go-rest # コンテナ名 
+    build:
+      # ビルドに使うDockerファイルのパス
+      context: .
+      dockerfile: ./build/Dockerfile
+    volumes:
+      # マウントディレクトリ
+      - ./:/src
+    tty: true # コンテナの永続化
+    environment:
+      - TZ=Asia/Tokyo
+    ports:
+      - 8020:8080
+    networks:
+      - go-rest-network
+    env_file:
+      - .env
+  db:
+    container_name: go-rest-db
+    platform: linux/x86_64
+    image: mysql:8.0
+    ports:
+      - 3307:3306
+    environment:
+      MYSQL_USER: mysqlusername
+      MYSQL_PASSWORD: mysqluserpass
+      MYSQL_ROOT_PASSWORD: mysqlrootpass
+      MYSQL_DATABASE: go-rest-db
+    restart: always
+    volumes:
+      - go-rest-db-volume:/var/lib/mysql
+    networks:
+      - go-rest-network
+volumes:
+  go-rest-db-volume:
+    driver: local
+networks:
+  go-rest-network:
+    driver: bridge
