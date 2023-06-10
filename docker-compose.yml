@@ -29,7 +29,7 @@ services:
       MYSQL_USER: mysqlusername
       MYSQL_PASSWORD: mysqluserpass
       MYSQL_ROOT_PASSWORD: mysqlrootpass
-      MYSQL_DATABASE: go-rest-db
+      MYSQL_DATABASE: go_rest_db
     restart: always
     volumes:
       - go-rest-db-volume:/var/lib/mysql
