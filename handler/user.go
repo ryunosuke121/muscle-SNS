@@ -23,9 +23,15 @@ func CreateUser(c echo.Context) error {
 	if err := validate.Struct(user); err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
-
+	if user.TrainingGroupID == 0 {
+		user.TrainingGroupID = 1
+	}
 	db := db.NewDB()
-	db.Create(&user)
+	err := db.Create(&user).Error
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+	db.Preload("TrainingGroup").Find(&user)
 	res := Response{
 		Message: "success",
 		Data:    user,
@@ -38,6 +44,7 @@ func GetUser(c echo.Context) error {
 	user := new(model.User)
 	db := db.NewDB()
 	db.First(&user, id)
+	db.Preload("TrainingGroup").Find(&user)
 	res := Response{
 		Message: "success",
 		Data:    user,
@@ -74,14 +81,14 @@ func UpdateUser(c echo.Context) error {
 	}
 	data := map[string]interface{}{}
 
-	if request.NAME != "" {
-		data["name"] = request.NAME
+	if request.Name != "" {
+		data["name"] = request.Name
 	}
 	if request.ImageUrl != "" {
 		data["image_url"] = request.ImageUrl
 	}
-	if request.GroupId != 0 {
-		data["group_id"] = request.GroupId
+	if request.TrainingGroupID != 0 {
+		data["group_id"] = request.TrainingGroupID
 	}
 
 	db.Model(&user).Updates(data)
