@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"github.com/ryunosuke121/go-rest/model"
+	"github.com/ryunosuke121/muscle-SNS/model"
 )
 
 type IUserRepsitory interface {

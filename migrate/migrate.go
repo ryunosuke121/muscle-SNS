@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/ryunosuke121/go-rest/db"
-	"github.com/ryunosuke121/go-rest/model"
+	"github.com/ryunosuke121/muscle-SNS/db"
+	"github.com/ryunosuke121/muscle-SNS/model"
 )
 
 func main() {

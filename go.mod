@@ -1,4 +1,4 @@
-module github.com/ryunosuke121/go-rest
+module github.com/ryunosuke121/muscle-SNS
 
 go 1.19
 
