@@ -1,11 +1,12 @@
 package main
 
 import (
+	"net/http"
+	"os"
+
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/ryunosuke121/muscle-SNS/handler"
-	"net/http"
-	"os"
 )
 
 func main() {
@@ -45,6 +46,14 @@ func main() {
 	e.GET("/user/post/:user_id", handler.GetUserPosts)
 	//あるグループの投稿の取得
 	e.GET("/post/:group_id", handler.GetGroupPosts)
+
+	//グループ一覧の取得
+	e.GET("/groups", handler.GetGroups)
+
+	//グループ内のランキングを取得
+	e.GET("/group/ranking/:group_id", handler.GroupRanking)
+	//ユーザーの総重量を取得
+	e.GET("/user/total_weight/:user_id", handler.TotalWeight)
 
 	httpPort := os.Getenv("HTTP_PORT")
 	if httpPort == "" {

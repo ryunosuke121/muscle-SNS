@@ -1,11 +1,12 @@
 package handler
 
 import (
+	"net/http"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"github.com/ryunosuke121/muscle-SNS/db"
 	"github.com/ryunosuke121/muscle-SNS/model"
-	"net/http"
 )
 
 type Response struct {

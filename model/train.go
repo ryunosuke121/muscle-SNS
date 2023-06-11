@@ -13,6 +13,7 @@ type Training struct {
 	Menu      Menu      `json:"menu" gorm:"OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Times     uint      `json:"times" gorm:"not null" `
 	Weight    uint      `json:"weight" gorm:"not null"`
+	Sets      uint      `json:"sets" gorm:"not null"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
