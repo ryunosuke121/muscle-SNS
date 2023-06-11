@@ -1,11 +1,11 @@
 package handler
 
 import (
+	"time"
+
 	"github.com/labstack/echo/v4"
 	"github.com/ryunosuke121/muscle-SNS/db"
 	"github.com/ryunosuke121/muscle-SNS/model"
-	"net/http"
-	"time"
 )
 
 // 　トレーニング作成
@@ -60,6 +60,7 @@ func CreatePost(c echo.Context) error {
 	post.CreatedAt = time.Now()
 	db := db.NewDB()
 	db.Create(&post)
+	db.Preload("User").Preload("Training").First(&post, post.ID)
 	res := Response{
 		Message: "success",
 		Data:    post,
@@ -70,35 +71,11 @@ func CreatePost(c echo.Context) error {
 // ユーザーの投稿取得
 func GetUserPosts(c echo.Context) error {
 	id := c.Param("user_id")
-	user := new(model.User)
+	var user model.User
 	db := db.NewDB()
 	db.Preload("Posts").First(&user, id)
-	posts := new([]model.Post)
-	posts = &user.Posts
+	posts := user.Posts
 
-	res := Response{
-		Message: "success",
-		Data:    posts,
-	}
-	return c.JSON(200, res)
-}
-
-// あるグループの投稿取得
-func GetGroupPosts(c echo.Context) error {
-	id := c.Param("group_id")
-	users := new([]model.User)
-	db := db.NewDB()
-	err := db.Preload("Posts").Where("training_group_id = ?", id).Find(&users).Error
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
-	}
-
-	var posts []model.Post
-	for _, user := range *users {
-		for _, post := range user.Posts {
-			posts = append(posts, post)
-		}
-	}
 	res := Response{
 		Message: "success",
 		Data:    posts,
