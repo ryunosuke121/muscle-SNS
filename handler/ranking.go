@@ -42,10 +42,21 @@ func TotalWeight(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
-	var user model.User
+	menu_id, err := strconv.Atoi(c.QueryParam("menu_id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
 	db := db.NewDB()
+	var menu model.Menu
+	db.Find(&menu, menu_id)
+	if menu.ID == 0 {
+		return c.JSON(http.StatusBadRequest, "menu_idが不正です")
+	}
+
+	var user model.User
 	db.Preload("Trainings").Find(&user, user_id)
-	total_weight := calcUserWeight(user)
+	total_weight := calcUserWeight(user, menu.ID)
 	res := Response{
 		Message: "success",
 		Data:    total_weight}
@@ -55,9 +66,16 @@ func TotalWeight(c echo.Context) error {
 // グループ内のランキングを取得
 func GroupRanking(c echo.Context) error {
 	group_id := c.Param("group_id")
+	menu_id := c.QueryParam("menu_id")
 	users := new([]model.User)
 	db := db.NewDB()
 	db.Where("training_group_id = ?", group_id).Find(&users)
+
+	var menu model.Menu
+	db.Find(&menu, menu_id)
+	if menu.ID == 0 {
+		return c.JSON(http.StatusBadRequest, "menu_idが不正です")
+	}
 	rankMap := RankMap{utl: []UserTotalWeight{}}
 
 	var wg sync.WaitGroup
@@ -66,7 +84,7 @@ func GroupRanking(c echo.Context) error {
 		wg.Add(1)
 		go func(user model.User) {
 			defer wg.Done()
-			total_weight := calcUserWeight(user)
+			total_weight := calcUserWeight(user, menu.ID)
 			rankMap.mu.Lock()
 			rankMap.utl = append(rankMap.utl, UserTotalWeight{user, total_weight})
 			rankMap.mu.Unlock()
@@ -81,14 +99,14 @@ func GroupRanking(c echo.Context) error {
 }
 
 // ユーザーの1ヶ月に持ち上げた総重量を計算
-func calcUserWeight(user model.User) uint {
+func calcUserWeight(user model.User, menu_id uint) uint {
 	db := db.NewDB()
 	db.Preload("Trainings").Find(&user)
 	oneMonthAgo := time.Now().AddDate(0, -1, 0)
 
 	var total_weight uint = 0
 	for _, training := range user.Trainings {
-		if training.CreatedAt.After(oneMonthAgo) {
+		if training.CreatedAt.After(oneMonthAgo) && training.MenuID == menu_id {
 			total_weight += training.Weight * training.Times * training.Sets
 		}
 	}
