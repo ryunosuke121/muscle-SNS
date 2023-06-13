@@ -77,9 +77,9 @@ func UpdateUser(c echo.Context) error {
 	db := db.NewDB()
 	db.First(&user, id)
 	// パスワードが一致しない場合はエラー
-	if user.Password != request.Password {
-		return c.JSON(http.StatusBadRequest, "password is wrong")
-	}
+	// if user.Password != request.Password {
+	// 	return c.JSON(http.StatusBadRequest, "password is wrong")
+	// }
 	data := map[string]interface{}{}
 
 	if request.Name != "" {

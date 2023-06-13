@@ -1,11 +1,11 @@
 package model
 
 type User struct {
-	ID              uint          `json:"id" gorm:"primaryKey"`
-	Name            string        `json:"name" gorm:"not null" validate:"required"`
-	Email           string        `json:"email" gorm:"unique" validate:"required,email"`
-	Password        string        `json:"password" validate:"required,min=4,max=32"`
-	TrainingGroupID int           `json:"training_group_id"`
+	ID    uint   `json:"id" gorm:"primaryKey"`
+	Name  string `json:"name" gorm:"not null" validate:"required"`
+	Email string `json:"email" gorm:"unique" validate:"required,email"`
+	// Password        string        `json:"password" validate:"required,min=4,max=32"`
+	TrainingGroupID uint          `json:"training_group_id"`
 	TrainingGroup   TrainingGroup `json:"training_group"`
 	ImageUrl        string        `json:"image_url"`
 	Posts           []Post        `json:"posts"`
@@ -13,7 +13,8 @@ type User struct {
 }
 
 type TrainingGroup struct {
-	ID    uint   `json:"id" gorm:"primaryKey"`
-	Name  string `json:"name" gorm:"not null"`
-	Users []User `json:"users"`
+	ID       uint   `json:"id" gorm:"primaryKey"`
+	Name     string `json:"name" gorm:"not null"`
+	ImageUrl string `json:"image_url"`
+	Users    []User `json:"users"`
 }

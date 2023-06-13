@@ -7,9 +7,13 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/ryunosuke121/muscle-SNS/handler"
+	"github.com/ryunosuke121/muscle-SNS/s3client"
 )
 
 func main() {
+
+	// AWS S3の設定
+	s3client.InitS3Client()
 
 	e := echo.New()
 
