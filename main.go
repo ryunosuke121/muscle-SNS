@@ -49,7 +49,7 @@ func main() {
 	//あるユーザーの投稿を複数取得
 	e.GET("/user/post/:user_id", handler.GetUserPosts)
 	//あるグループの投稿の取得
-	e.GET("/post/:group_id", handler.GetGroupPosts)
+	e.GET("/group/posts/:group_id", handler.GetGroupPosts)
 
 	//グループ一覧の取得
 	e.GET("/groups", handler.GetGroups)
