@@ -39,6 +39,7 @@ func CreateTraining(c echo.Context) error {
 	training.CreatedAt = time.Now()
 	db := db.NewDB()
 	db.Create(&training)
+	db.Preload("User").Preload("Menu").Find(&training)
 	res := Response{
 		Message: "success",
 		Data:    training,
@@ -48,10 +49,10 @@ func CreateTraining(c echo.Context) error {
 
 // トレーニング取得
 func GetTraining(c echo.Context) error {
-	id := c.Param("id")
+	id := c.Param("training_id")
 	training := new(model.Training)
 	db := db.NewDB()
-	db.First(&training, id)
+	db.Preload("User").Preload("Menu").Where("id = ?", id).First(&training)
 	res := Response{
 		Message: "success",
 		Data:    training,
@@ -75,14 +76,14 @@ func GetUserTrainings(c echo.Context) error {
 // 投稿作成
 func CreatePost(c echo.Context) error {
 	//　投稿データの受取
-	post := c.FormValue("post")
+	post := c.FormValue("post_info")
 	var requestPost RequestPost
 	err := json.Unmarshal([]byte(post), &requestPost)
 	if err != nil {
 		return err
 	}
 	// 画像の受取
-	imageFile, err := c.FormFile("image")
+	imageFile, err := c.FormFile("post_image")
 	imgUrl := ""
 	//画像がある場合はS3に保存
 	if err == nil {

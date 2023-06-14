@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"fmt"
+	"sort"
 	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -63,6 +64,9 @@ func GetGroupPosts(c echo.Context) error {
 		}
 		wg.Wait()
 	}
+	sort.Slice(response_group_posts.Posts, func(i, j int) bool {
+		return response_group_posts.Posts[i].CreatedAt.After(response_group_posts.Posts[j].CreatedAt)
+	})
 
 	res := Response{
 		Message: "success",
