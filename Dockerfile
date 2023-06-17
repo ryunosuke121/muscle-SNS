@@ -13,8 +13,11 @@ RUN go mod download
 # https://docs.docker.com/engine/reference/builder/#copy
 COPY ./ ./
 
+RUN chmod +x ./migrate.sh
+CMD [ "./migrate.sh" ]
+
 # Build
-RUN CGO_ENABLED=0 GOOS=linux go build
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o app
 
 # To bind to a TCP port, runtime parameters must be supplied to the docker command.
 # But we can (optionally) document in the Dockerfile what ports
@@ -22,5 +25,11 @@ RUN CGO_ENABLED=0 GOOS=linux go build
 # https://docs.docker.com/engine/reference/builder/#expose
 EXPOSE 8080
 
+FROM alpine:latest
+
+WORKDIR /app
+
+COPY --from=0 /src/app .
+
 # Run
-CMD ["go", "run", "."]
+ENTRYPOINT ["./app"]

@@ -6,38 +6,50 @@ services:
     build:
       # ビルドに使うDockerファイルのパス
       context: .
-      dockerfile: ./build/Dockerfile
-    volumes:
-      # マウントディレクトリ
-      - ./:/src
+      dockerfile: ./Dockerfile
+    #image: 176716958179.dkr.ecr.us-east-1.amazonaws.com/go-rest-api:latest
+    # volumes:
+    #   # マウントディレクトリ
+    #   - ./:/src
     tty: true # コンテナの永続化
     environment:
       - TZ=Asia/Tokyo
     ports:
-      - 8020:8080
+      - 8080:8080
     networks:
       - go-rest-network
     env_file:
       - .env
+    depends_on:
+      - db
   db:
     container_name: go-rest-db
-    platform: linux/x86_64
+    # platform: linux/x86_64
     image: mysql:8.0
     ports:
-      - 3307:3306
+      - 3306:3306
     environment:
       MYSQL_USER: mysqlusername
       MYSQL_PASSWORD: mysqluserpass
       MYSQL_ROOT_PASSWORD: mysqlrootpass
       MYSQL_DATABASE: go_rest_db
-    restart: always
+    # restart: always
     volumes:
-      - go-rest-db-volume:/var/lib/mysql
+      - go-rest-db-vol:/var/lib/mysql
     networks:
       - go-rest-network
+  # migrate:
+  #   container_name: go-rest-migrate
+  #   image: 176716958179.dkr.ecr.us-east-1.amazonaws.com/go-rest-migrate:latest
+  #   networks:
+  #     - go-rest-network
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - db
+
 volumes:
-  go-rest-db-volume:
-    driver: local
+  go-rest-db-vol:
 networks:
   go-rest-network:
     driver: bridge
