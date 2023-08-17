@@ -1,30 +1,8 @@
 version: '3' # composeファイルのバージョン
 services:
-  web:
-    # サービス名
-    container_name: go-rest # コンテナ名 
-    build:
-      # ビルドに使うDockerファイルのパス
-      context: .
-      dockerfile: ./Dockerfile
-    #image: 176716958179.dkr.ecr.us-east-1.amazonaws.com/go-rest-api:latest
-    # volumes:
-    #   # マウントディレクトリ
-    #   - ./:/src
-    tty: true # コンテナの永続化
-    environment:
-      - TZ=Asia/Tokyo
-    ports:
-      - 8080:8080
-    networks:
-      - go-rest-network
-    env_file:
-      - .env
-    depends_on:
-      - db
   db:
-    container_name: go-rest-db
-    # platform: linux/x86_64
+    container_name: muscle-sns-db
+    platform: linux/x86_64
     image: mysql:8.0
     ports:
       - 3306:3306
@@ -32,24 +10,15 @@ services:
       MYSQL_USER: mysqlusername
       MYSQL_PASSWORD: mysqluserpass
       MYSQL_ROOT_PASSWORD: mysqlrootpass
-      MYSQL_DATABASE: go_rest_db
-    # restart: always
+      MYSQL_DATABASE: muscle-sns-db
     volumes:
-      - go-rest-db-vol:/var/lib/mysql
+      - muscle-sns-db-vol:/var/lib/mysql
     networks:
-      - go-rest-network
-  # migrate:
-  #   container_name: go-rest-migrate
-  #   image: 176716958179.dkr.ecr.us-east-1.amazonaws.com/go-rest-migrate:latest
-  #   networks:
-  #     - go-rest-network
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - db
+      - muscle-sns-network
 
 volumes:
-  go-rest-db-vol:
+  muscle-sns-db-vol:
+
 networks:
-  go-rest-network:
+  muscle-sns-network:
     driver: bridge
