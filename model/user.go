@@ -12,6 +12,13 @@ type User struct {
 	Trainings       []Training    `json:"trainings"`
 }
 
+type UserResponse struct {
+	ID              uint   `json:"id"`
+	Name            string `json:"name"`
+	Email           string `json:"email"`
+	TrainingGroupID uint   `json:"training_group_id"`
+}
+
 type TrainingGroup struct {
 	ID       uint   `json:"id" gorm:"primaryKey"`
 	Name     string `json:"name" gorm:"not null"`
