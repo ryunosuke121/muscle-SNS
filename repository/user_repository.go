@@ -24,37 +24,76 @@ type IUserRepository interface {
 }
 
 type userRepository struct {
-	db       *gorm.DB
-	s3Client *s3.Client
+	db              *gorm.DB
+	s3Client        *s3.Client
+	s3PresignClient *s3.PresignClient
 }
 
-func NewUserRepository(db *gorm.DB, s3Client *s3.Client) IUserRepository {
-	return &userRepository{db, s3Client}
+func NewUserRepository(db *gorm.DB, s3Client *s3.Client, s3PresignClient *s3.PresignClient) IUserRepository {
+	return &userRepository{db, s3Client, s3PresignClient}
 }
 
 func (ur *userRepository) CreateUser(user *model.User) error {
+	result := ur.db.Create(&user)
+	if result.Error != nil {
+		return result.Error
+	}
 	return nil
 }
 
 func (ur *userRepository) GetUserById(user *model.User, userId uint) error {
+	result := ur.db.First(&user, userId)
+	if result.Error != nil {
+		return result.Error
+	}
 	return nil
 }
 
 func (ur *userRepository) GetUserByEmail(user *model.User, email string) error {
+	result := ur.db.Where("email = ?", email).First(&user)
+	if result.Error != nil {
+		return result.Error
+	}
 	return nil
 }
 
 func (ur *userRepository) UpdateUserName(user *model.User, userId uint) error {
-
+	result := ur.db.Model(user).Where("id = ?", userId).Update("name", user.Name)
+	if result.Error != nil {
+		return result.Error
+	}
 	return nil
 }
 
 func (ur *userRepository) UpdateUserTrainingGroup(user *model.User, groupId uint) error {
+	result := ur.db.Model(user).Where("id = ?", user.ID).Update("training_group_id", groupId)
+	if result.Error != nil {
+		return result.Error
+	}
 	return nil
 }
 
 func (ur *userRepository) GetUserImageUrlById(userId uint) (string, error) {
-	return "", nil
+	user := model.User{}
+	result := ur.db.First(&user, userId)
+	if result.Error != nil {
+		return "", result.Error
+	}
+
+	if user.ImageUrl == "" {
+		return "", nil
+	}
+
+	// s3から画像を取得
+	param := s3.GetObjectInput{
+		Bucket: aws.String(os.Getenv("BUCKET_NAME")),
+		Key:    aws.String(user.ImageUrl),
+	}
+	res, err := ur.s3PresignClient.PresignGetObject(context.Background(), &param)
+	if err != nil {
+		return "", err
+	}
+	return res.URL, nil
 }
 
 func (ur *userRepository) SetUserImage(user *model.User, file *multipart.FileHeader) error {
