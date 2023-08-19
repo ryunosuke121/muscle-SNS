@@ -1,13 +1,19 @@
 package validator
 
 import (
+	"errors"
+	"io"
+	"mime/multipart"
+
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/ryunosuke121/muscle-SNS/model"
+	"github.com/ryunosuke121/muscle-SNS/utils"
 )
 
 type IUserValidator interface {
 	UserValidator(user model.User) error
+	UserImageValidator(file *multipart.FileHeader) error
 }
 
 type userValidator struct{}
@@ -32,4 +38,33 @@ func (uv *userValidator) UserValidator(user model.User) error {
 			validation.Length(8, 32).Error("パスワードは8文字以上32文字以内で入力してください"),
 		),
 	)
+}
+
+func (uv *userValidator) UserImageValidator(file *multipart.FileHeader) error {
+	src, err := file.Open()
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+
+	// ファイルサイズの検証
+	const maxFileSize = 10 << 20
+	fileBytes, err := io.ReadAll(src)
+	if err != nil {
+		return err
+	}
+	if len(fileBytes) > maxFileSize {
+		return errors.New("ファイルサイズが大きすぎます")
+	}
+
+	// MIMEタイプの検証
+	contentType, err := utils.InspectFileMimeType(file)
+	if err != nil {
+		return err
+	}
+	if contentType != "image/jpeg" && contentType != "image/png" {
+		return errors.New("ファイル形式が正しくありません")
+	}
+
+	return nil
 }

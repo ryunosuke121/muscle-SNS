@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"mime/multipart"
 	"os"
 	"time"
 
@@ -14,7 +15,7 @@ import (
 type IUserUseCase interface {
 	SignUp(user model.User) (model.UserResponse, error)
 	Login(user model.User) (string, error)
-	SetUserImage(user model.User, file []byte) (string, error)
+	SetUserImage(user model.User, file *multipart.FileHeader) error
 	GetUserImageUrlById(userId uint) (string, error)
 }
 
@@ -83,12 +84,15 @@ func (uu *userUsecase) Login(user model.User) (string, error) {
 	return tokenString, nil
 }
 
-func (uu *userUsecase) SetUserImage(user model.User, file []byte) (string, error) {
-	imgUrl, err := uu.ur.SetUserImage(&user, file)
-	if err != nil {
-		return "", err
+func (uu *userUsecase) SetUserImage(user model.User, file *multipart.FileHeader) error {
+	if err := uu.uv.UserImageValidator(file); err != nil {
+		return err
 	}
-	return imgUrl, nil
+	err := uu.ur.SetUserImage(&user, file)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (uu *userUsecase) GetUserImageUrlById(userId uint) (string, error) {
