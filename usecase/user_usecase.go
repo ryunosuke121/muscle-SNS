@@ -15,8 +15,11 @@ import (
 type IUserUseCase interface {
 	SignUp(user model.User) (model.UserResponse, error)
 	Login(user model.User) (string, error)
-	SetUserImage(user model.User, file *multipart.FileHeader) error
 	GetUserImageUrlById(userId uint) (string, error)
+	GetUserById(user *model.User, userId uint) (model.UserResponse, error)
+	UpdateUserName(name string, userId uint) (model.UserResponse, error)
+	UpdateUserTrainingGroup(groupId uint, userId uint) (model.UserResponse, error)
+	UpdateUserImage(file *multipart.FileHeader, userId uint) (model.UserResponse, error)
 }
 
 type userUsecase struct {
@@ -84,21 +87,83 @@ func (uu *userUsecase) Login(user model.User) (string, error) {
 	return tokenString, nil
 }
 
-func (uu *userUsecase) SetUserImage(user model.User, file *multipart.FileHeader) error {
-	if err := uu.uv.UserImageValidator(file); err != nil {
-		return err
-	}
-	err := uu.ur.SetUserImage(&user, file)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func (uu *userUsecase) GetUserImageUrlById(userId uint) (string, error) {
 	imgUrl, err := uu.ur.GetUserImageUrlById(userId)
 	if err != nil {
 		return "", err
 	}
 	return imgUrl, nil
+}
+
+func (uu *userUsecase) GetUserById(user *model.User, userId uint) (model.UserResponse, error) {
+	if err := uu.ur.GetUserById(user, userId); err != nil {
+		return model.UserResponse{}, err
+	}
+	// ここに本来は認可の処理を書く？
+
+	resUser := model.UserResponse{
+		ID:              user.ID,
+		Name:            user.Name,
+		Email:           user.Email,
+		TrainingGroupID: user.TrainingGroupID,
+		ImageUrl:        user.ImageUrl,
+	}
+
+	return resUser, nil
+}
+
+func (uu *userUsecase) UpdateUserName(name string, userId uint) (model.UserResponse, error) {
+	user := &model.User{}
+	if err := uu.ur.UpdateUserName(user, userId, name); err != nil {
+		return model.UserResponse{}, err
+	}
+
+	resUser := model.UserResponse{
+		ID:              user.ID,
+		Name:            user.Name,
+		Email:           user.Email,
+		TrainingGroupID: user.TrainingGroupID,
+		ImageUrl:        user.ImageUrl,
+	}
+
+	return resUser, nil
+}
+
+func (uu *userUsecase) UpdateUserTrainingGroup(groupId uint, userId uint) (model.UserResponse, error) {
+	user := &model.User{}
+
+	if err := uu.ur.UpdateUserTrainingGroup(user, userId, groupId); err != nil {
+		return model.UserResponse{}, err
+	}
+
+	resUser := model.UserResponse{
+		ID:              user.ID,
+		Name:            user.Name,
+		Email:           user.Email,
+		TrainingGroupID: user.TrainingGroupID,
+		ImageUrl:        user.ImageUrl,
+	}
+
+	return resUser, nil
+}
+
+func (uu *userUsecase) UpdateUserImage(file *multipart.FileHeader, userId uint) (model.UserResponse, error) {
+	if err := uu.uv.UserImageValidator(file); err != nil {
+		return model.UserResponse{}, err
+	}
+
+	user := &model.User{}
+	if err := uu.ur.SetUserImage(user, userId, file); err != nil {
+		return model.UserResponse{}, err
+	}
+
+	resUser := model.UserResponse{
+		ID:              user.ID,
+		Name:            user.Name,
+		Email:           user.Email,
+		TrainingGroupID: user.TrainingGroupID,
+		ImageUrl:        user.ImageUrl,
+	}
+
+	return resUser, nil
 }

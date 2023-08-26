@@ -1,212 +1,147 @@
 package controller
 
 import (
+	"errors"
 	"net/http"
+	"strconv"
 
-	"context"
-	"encoding/json"
-	"fmt"
-	"os"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/go-playground/validator/v10"
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-	"github.com/ryunosuke121/muscle-SNS/db"
 	"github.com/ryunosuke121/muscle-SNS/model"
-	"github.com/ryunosuke121/muscle-SNS/s3client"
+	"github.com/ryunosuke121/muscle-SNS/usecase"
 )
 
-type Response struct {
-	Message string `json:"message"`
-	Data    any    `json:"data"`
+type IUserController interface {
+	SignUp(c echo.Context) error
+	Login(c echo.Context) error
+	Logout(c echo.Context) error
+	GetUsersById(c echo.Context) error
+	UpdateUserName(c echo.Context) error
+	UpdateUserTrainingGroup(c echo.Context) error
+	UpdateUserImage(c echo.Context) error
 }
 
-type CreateUserRequest struct {
-	Name            string `json:"name" validate:"required"`
-	Email           string `json:"email" validate:"required,email"`
-	Password        string `json:"password" validate:"required,min=8,max=32"`
-	TrainingGroupID uint   `json:"training_group_id"`
+type userController struct {
+	uu usecase.IUserUseCase
 }
 
-type UpdateUserRequest struct {
-	Name            string `json:"name" validate:"required"`
-	Email           string `json:"email" validate:"required,email"`
-	TrainingGroupID uint   `json:"training_group_id"`
+func NewUserController(uu usecase.IUserUseCase) IUserController {
+	return &userController{uu}
 }
 
-func CreateUser(c echo.Context) error {
-	user_info := c.FormValue("user_info")
-	var create_user_request CreateUserRequest
-	err := json.Unmarshal([]byte(user_info), &create_user_request)
+func (uc *userController) SignUp(c echo.Context) error {
+	user := model.User{}
+	if err := c.Bind(&user); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+	userRes, err := uc.uu.SignUp(user)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+	return c.JSON(http.StatusOK, userRes)
+}
+
+func (uc *userController) Login(c echo.Context) error {
+	return nil
+}
+
+func (uc *userController) Logout(c echo.Context) error {
+	return nil
+}
+
+func (uc *userController) GetUsersById(c echo.Context) error {
+	strIds := c.QueryParams()["id"]
+	ids, err := strConvertUint(strIds)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	user := model.User{
-		Name:            create_user_request.Name,
-		Email:           create_user_request.Email,
-		Password:        create_user_request.Password,
-		TrainingGroupID: create_user_request.TrainingGroupID,
+	var users []model.UserResponse
+	for _, id := range ids {
+		user := model.User{}
+		res, _ := uc.uu.GetUserById(&user, uint(id))
+		users = append(users, res)
 	}
+	return c.JSON(http.StatusOK, users)
+}
 
-	validate := validator.New()
-	if err := validate.Struct(user); err != nil {
+func (uc *userController) UpdateUserName(c echo.Context) error {
+	id := c.Param("id")
+	if id == "" {
+		return c.JSON(http.StatusBadRequest, errors.New("userId is empty"))
+	}
+	userId, err := strconv.ParseUint(id, 10, 64)
+	if err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
-	if user.TrainingGroupID == 0 {
-		user.TrainingGroupID = 1
+
+	name := c.FormValue("name")
+	if name == "" {
+		return c.JSON(http.StatusBadRequest, errors.New("name is empty"))
 	}
-	encryptPw, err := crypto.PasswordEncrypt(user.Password)
+
+	res, err := uc.uu.UpdateUserName(name, uint(userId))
 	if err != nil {
-		fmt.Println("パスワード暗号化中にエラーが発生しました。：", err)
-		return err
+		return c.JSON(http.StatusBadRequest, err.Error())
 	}
-	user.Password = encryptPw
+
+	return c.JSON(http.StatusOK, res)
+}
+
+func (uc *userController) UpdateUserTrainingGroup(c echo.Context) error {
+	id := c.Param("id")
+	if id == "" {
+		return c.JSON(http.StatusBadRequest, errors.New("userId is empty"))
+	}
+	userId, err := strconv.ParseUint(id, 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+	groupIdstr := c.FormValue("group_id")
+	if groupIdstr == "" {
+		return c.JSON(http.StatusBadRequest, errors.New("groupId is empty"))
+	}
+	groupId, err := strconv.ParseUint(groupIdstr, 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	res, err := uc.uu.UpdateUserTrainingGroup(uint(groupId), uint(userId))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, res)
+}
+
+func (uc *userController) UpdateUserImage(c echo.Context) error {
+	id := c.Param("id")
+	if id == "" {
+		return c.JSON(http.StatusBadRequest, errors.New("userId is empty"))
+	}
+	userId, err := strconv.ParseUint(id, 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
 
 	imageFile, err := c.FormFile("user_image")
-	imgUrl := ""
-	if err == nil {
-		src, err := imageFile.Open()
-		if err != nil {
-			return err
-		}
-		defer src.Close()
-		//キーにuuidを含める
-		u, err := uuid.NewRandom()
-		if err != nil {
-			return err
-		}
-
-		imgUrl = fmt.Sprintf("user_image/%s%s", u.String(), imageFile.Filename)
-
-		// s3に画像を保存
-		param := &s3.PutObjectInput{
-			Bucket: aws.String(os.Getenv("BUCKET_NAME")),
-			Key:    aws.String(imgUrl),
-			Body:   src,
-		}
-		_, err = s3client.S3Client.PutObject(context.TODO(), param)
-		if err != nil {
-			return err
-		}
-	}
-	user.ImageUrl = imgUrl
-	db := db.NewDB()
-	err = db.Create(&user).Error
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
-	db.Preload("TrainingGroup").Find(&user)
-	res := Response{
-		Message: "success",
-		Data:    user,
+	res, err := uc.uu.UpdateUserImage(imageFile, uint(userId))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, errors.New("画像が変更できませんでした"))
 	}
-	return c.JSON(200, res)
+	return c.JSON(http.StatusOK, res)
 }
 
-// ユーザー取得
-func GetUser(c echo.Context) error {
-	id := c.Param("id")
-	user := new(model.User)
-	db := db.NewDB()
-	db.First(&user, id)
-	db.Preload("TrainingGroup").Find(&user)
-	//s3から画像を取得
-	if user.ImageUrl != "" {
-		param := &s3.GetObjectInput{
-			Bucket: aws.String(os.Getenv("BUCKET_NAME")),
-			Key:    aws.String(user.ImageUrl),
-		}
-		res, err := s3client.PresignClient.PresignGetObject(context.Background(), param)
+func strConvertUint(strIds []string) ([]uint64, error) {
+	var resultIds []uint64
+	for _, str := range strIds {
+		id, err := strconv.ParseUint(str, 10, 64)
 		if err != nil {
-			return err
+			return make([]uint64, 0), err
 		}
-		user.ImageUrl = res.URL
+		resultIds = append(resultIds, id)
 	}
-	res := Response{
-		Message: "success",
-		Data:    user,
-	}
-	return c.JSON(200, res)
-}
-
-// ユーザーを複数取得
-func GetUsers(c echo.Context) error {
-	ids := c.QueryParams()["id"]
-	users := new([]model.User)
-	db := db.NewDB()
-	db.Find(&users, ids)
-	res := Response{
-		Message: "success",
-		Data:    users,
-	}
-	return c.JSON(200, res)
-}
-
-// ユーザー更新
-func UpdateUser(c echo.Context) error {
-	id := c.Param("id")
-	// リクエストボディを取得
-	user_info := c.FormValue("user_info")
-	var request UpdateUserRequest
-	if err := json.Unmarshal([]byte(user_info), &request); err != nil {
-		return err
-	}
-
-	user := new(model.User)
-	db := db.NewDB()
-	db.First(&user, id)
-	if user.ID == 0 {
-		return c.JSON(http.StatusBadRequest, "ユーザーが見つかりませんでした。")
-	}
-
-	data := map[string]interface{}{}
-
-	if request.Name != "" {
-		data["name"] = request.Name
-	}
-	if request.Email != "" {
-		data["email"] = request.Email
-	}
-	if request.TrainingGroupID != 0 {
-		data["training_group_id"] = request.TrainingGroupID
-	}
-
-	// TODO: 画像のアップデート処理
-	imageFile, err := c.FormFile("user_image")
-	if err == nil {
-		src, err := imageFile.Open()
-		if err != nil {
-			return err
-		}
-		defer src.Close()
-		//キーにuuidを含める
-		u, err := uuid.NewRandom()
-		if err != nil {
-			return err
-		}
-
-		imgUrl := fmt.Sprintf("user_image/%s%s", u.String(), imageFile.Filename)
-
-		// s3に画像を保存
-		param := &s3.PutObjectInput{
-			Bucket: aws.String(os.Getenv("BUCKET_NAME")),
-			Key:    aws.String(imgUrl),
-			Body:   src,
-		}
-		_, err = s3client.S3Client.PutObject(context.TODO(), param)
-		if err != nil {
-			return err
-		}
-		data["image_url"] = imgUrl
-	}
-
-	db.Model(&user).Updates(data)
-	res := Response{
-		Message: "success",
-		Data:    user,
-	}
-	return c.JSON(200, res)
+	return resultIds, nil
 }

@@ -17,10 +17,11 @@ import (
 type IUserRepository interface {
 	CreateUser(user *model.User) error
 	GetUserById(user *model.User, userId uint) error
-	UpdateUserName(user *model.User, userId uint) error
+	UpdateUserName(user *model.User, userId uint, userName string) error
+	UpdateUserTrainingGroup(user *model.User, userId uint, groupId uint) error
 	GetUserByEmail(user *model.User, email string) error
 	GetUserImageUrlById(userId uint) (string, error)
-	SetUserImage(user *model.User, file *multipart.FileHeader) error
+	SetUserImage(user *model.User, userId uint, file *multipart.FileHeader) error
 }
 
 type userRepository struct {
@@ -46,6 +47,11 @@ func (ur *userRepository) GetUserById(user *model.User, userId uint) error {
 	if result.Error != nil {
 		return result.Error
 	}
+	url, err := ur.GetUserImageUrlById(userId)
+	if err != nil {
+		return err
+	}
+	user.ImageUrl = url
 	return nil
 }
 
@@ -54,22 +60,47 @@ func (ur *userRepository) GetUserByEmail(user *model.User, email string) error {
 	if result.Error != nil {
 		return result.Error
 	}
+	url, err := ur.GetUserImageUrlById(user.ID)
+	if err != nil {
+		return err
+	}
+	user.ImageUrl = url
 	return nil
 }
 
-func (ur *userRepository) UpdateUserName(user *model.User, userId uint) error {
-	result := ur.db.Model(user).Where("id = ?", userId).Update("name", user.Name)
+func (ur *userRepository) UpdateUserName(user *model.User, userId uint, userName string) error {
+	result := ur.db.Model(user).Where("id = ?", userId).Update("name", userName)
 	if result.Error != nil {
 		return result.Error
 	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("user not found or name is same")
+	}
+
+	ur.db.First(&user, userId)
+	url, err := ur.GetUserImageUrlById(user.ID)
+	if err != nil {
+		return err
+	}
+	user.ImageUrl = url
 	return nil
 }
 
-func (ur *userRepository) UpdateUserTrainingGroup(user *model.User, groupId uint) error {
-	result := ur.db.Model(user).Where("id = ?", user.ID).Update("training_group_id", groupId)
+func (ur *userRepository) UpdateUserTrainingGroup(user *model.User, userId uint, groupId uint) error {
+	result := ur.db.Model(user).Where("id = ?", userId).Update("training_group_id", groupId)
 	if result.Error != nil {
 		return result.Error
 	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("user not found or group is same")
+	}
+
+	ur.db.First(&user, userId)
+	url, err := ur.GetUserImageUrlById(user.ID)
+	if err != nil {
+		return err
+	}
+	user.ImageUrl = url
 	return nil
 }
 
@@ -96,7 +127,7 @@ func (ur *userRepository) GetUserImageUrlById(userId uint) (string, error) {
 	return res.URL, nil
 }
 
-func (ur *userRepository) SetUserImage(user *model.User, file *multipart.FileHeader) error {
+func (ur *userRepository) SetUserImage(user *model.User, userId uint, file *multipart.FileHeader) error {
 	src, err := file.Open()
 	if err != nil {
 		return err
@@ -126,7 +157,7 @@ func (ur *userRepository) SetUserImage(user *model.User, file *multipart.FileHea
 
 	// DBに保存
 	user.ImageUrl = fileName
-	result := ur.db.Model(user).Update("image_url", fileName)
+	result := ur.db.Model(user).Where("id=", userId).Update("image_url", fileName)
 	if result.Error != nil {
 		return result.Error
 	}
