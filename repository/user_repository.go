@@ -168,6 +168,13 @@ func (ur *userRepository) SetUserImage(user *model.User, userId uint, file *mult
 		return err
 	}
 
+	ur.db.First(&user, userId)
+	url, err := ur.GetUserImageUrlById(user.ID)
+	if err != nil {
+		return err
+	}
+	user.ImageUrl = url
+
 	return nil
 }
 

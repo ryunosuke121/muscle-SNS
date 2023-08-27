@@ -58,8 +58,10 @@ func (uc *userController) GetUsersById(c echo.Context) error {
 	var users []model.UserResponse
 	for _, id := range ids {
 		user := model.User{}
-		res, _ := uc.uu.GetUserById(&user, uint(id))
-		users = append(users, res)
+		res, err := uc.uu.GetUserById(&user, uint(id))
+		if err == nil {
+			users = append(users, res)
+		}
 	}
 	return c.JSON(http.StatusOK, users)
 }

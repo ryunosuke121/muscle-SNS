@@ -99,7 +99,6 @@ func (uu *userUsecase) GetUserById(user *model.User, userId uint) (model.UserRes
 	if err := uu.ur.GetUserById(user, userId); err != nil {
 		return model.UserResponse{}, err
 	}
-	// ここに本来は認可の処理を書く？
 
 	resUser := model.UserResponse{
 		ID:              user.ID,
