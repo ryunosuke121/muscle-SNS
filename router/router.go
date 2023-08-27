@@ -15,7 +15,7 @@ func NewRouter(uc controller.IUserController) *echo.Echo {
 	e.POST("/logout", uc.Logout)
 
 	e.GET("/", func(c echo.Context) error {
-		return c.HTML(http.StatusOK, "Hello, Docker! <3")
+		return c.HTML(http.StatusOK, "Hello")
 	})
 
 	e.GET("/ping", func(c echo.Context) error {
@@ -23,35 +23,37 @@ func NewRouter(uc controller.IUserController) *echo.Echo {
 	})
 
 	//ユーザーの作成
-	e.POST("/user", controller.CreateUser)
-	//ユーザーの取得
-	e.GET("/user/:id", controller.GetUser)
+	e.POST("/user", uc.SignUp)
 	//ユーザーを複数取得
-	e.GET("/users", controller.GetUsers)
-	//ユーザーの更新
-	e.PUT("/user/:id", controller.UpdateUser)
+	e.GET("/users", uc.GetUsersById)
+	//ユーザー名の更新
+	e.PUT("/user/name/:id", uc.UpdateUserName)
+	//ユーザーのトレーニンググループの更新
+	e.PUT("/user/training_group/:id", uc.UpdateUserTrainingGroup)
+	//ユーザーの画像の更新
+	e.PUT("/user/image/:id", uc.UpdateUserImage)
 
-	//トレーニングの作成
-	e.POST("/training", controller.CreateTraining)
-	//トレーニングの取得
-	e.GET("/training/:training_id", controller.GetTraining)
-	//あるユーザーのトレーニングを複数取得
-	e.GET("/user/trainings/:user_id", controller.GetUserTrainings)
+	// //トレーニングの作成
+	// e.POST("/training", controller.CreateTraining)
+	// //トレーニングの取得
+	// e.GET("/training/:training_id", controller.GetTraining)
+	// //あるユーザーのトレーニングを複数取得
+	// e.GET("/user/trainings/:user_id", controller.GetUserTrainings)
 
-	//投稿の作成
-	e.POST("/post", controller.CreatePost)
-	//あるユーザーの投稿を複数取得
-	e.GET("/user/post/:user_id", controller.GetUserPosts)
-	//あるグループの投稿の取得
-	e.GET("/group/posts/:group_id", controller.GetGroupPosts)
+	// //投稿の作成
+	// e.POST("/post", controller.CreatePost)
+	// //あるユーザーの投稿を複数取得
+	// e.GET("/user/post/:user_id", controller.GetUserPosts)
+	// //あるグループの投稿の取得
+	// e.GET("/group/posts/:group_id", controller.GetGroupPosts)
 
-	//グループ一覧の取得
-	e.GET("/groups", controller.GetGroups)
+	// //グループ一覧の取得
+	// e.GET("/groups", controller.GetGroups)
 
-	//グループ内のランキングを取得
-	e.GET("/group/ranking/:group_id", controller.GroupRanking)
-	//ユーザーの総重量を取得
-	e.GET("/user/total_weight/:user_id", controller.TotalWeight)
+	// //グループ内のランキングを取得
+	// e.GET("/group/ranking/:group_id", controller.GroupRanking)
+	// //ユーザーの総重量を取得
+	// e.GET("/user/total_weight/:user_id", controller.TotalWeight)
 
 	return e
 }
