@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"mime/multipart"
 	"os"
@@ -145,6 +146,13 @@ func (ur *userRepository) SetUserImage(user *model.User, userId uint, file *mult
 
 	fileName := fmt.Sprintf("user_image/%s%s", u.String(), extension)
 
+	// DBにファイル名を保存
+	user.ImageUrl = fileName
+	result := ur.db.Model(user).Where("id = ?", userId).Update("image_url", fileName)
+	if result.Error != nil {
+		return result.Error
+	}
+
 	param := s3.PutObjectInput{
 		Bucket: aws.String(os.Getenv("BUCKET_NAME")),
 		Key:    aws.String(fileName),
@@ -152,14 +160,12 @@ func (ur *userRepository) SetUserImage(user *model.User, userId uint, file *mult
 	}
 	_, err = ur.s3Client.PutObject(context.TODO(), &param)
 	if err != nil {
+		// アップロードに失敗したらDBのファイル名を空にする
+		result = ur.db.Model(user).Where("id = ?", userId).Update("image_url", "")
+		if result.Error != nil {
+			return errors.New("file upload failed and failed to fix DB")
+		}
 		return err
-	}
-
-	// DBに保存
-	user.ImageUrl = fileName
-	result := ur.db.Model(user).Where("id=", userId).Update("image_url", fileName)
-	if result.Error != nil {
-		return result.Error
 	}
 
 	return nil

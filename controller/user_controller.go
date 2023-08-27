@@ -67,7 +67,7 @@ func (uc *userController) GetUsersById(c echo.Context) error {
 func (uc *userController) UpdateUserName(c echo.Context) error {
 	id := c.Param("id")
 	if id == "" {
-		return c.JSON(http.StatusBadRequest, errors.New("userId is empty"))
+		return c.JSON(http.StatusBadRequest, errors.New("userId is empty").Error())
 	}
 	userId, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
@@ -76,7 +76,7 @@ func (uc *userController) UpdateUserName(c echo.Context) error {
 
 	name := c.FormValue("name")
 	if name == "" {
-		return c.JSON(http.StatusBadRequest, errors.New("name is empty"))
+		return c.JSON(http.StatusBadRequest, errors.New("name is empty").Error())
 	}
 
 	res, err := uc.uu.UpdateUserName(name, uint(userId))
@@ -90,7 +90,7 @@ func (uc *userController) UpdateUserName(c echo.Context) error {
 func (uc *userController) UpdateUserTrainingGroup(c echo.Context) error {
 	id := c.Param("id")
 	if id == "" {
-		return c.JSON(http.StatusBadRequest, errors.New("userId is empty"))
+		return c.JSON(http.StatusBadRequest, errors.New("userId is empty").Error())
 	}
 	userId, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
@@ -98,7 +98,7 @@ func (uc *userController) UpdateUserTrainingGroup(c echo.Context) error {
 	}
 	groupIdstr := c.FormValue("group_id")
 	if groupIdstr == "" {
-		return c.JSON(http.StatusBadRequest, errors.New("groupId is empty"))
+		return c.JSON(http.StatusBadRequest, errors.New("groupId is empty").Error())
 	}
 	groupId, err := strconv.ParseUint(groupIdstr, 10, 64)
 	if err != nil {
@@ -116,8 +116,9 @@ func (uc *userController) UpdateUserTrainingGroup(c echo.Context) error {
 func (uc *userController) UpdateUserImage(c echo.Context) error {
 	id := c.Param("id")
 	if id == "" {
-		return c.JSON(http.StatusBadRequest, errors.New("userId is empty"))
+		return c.JSON(http.StatusBadRequest, errors.New("userId is empty").Error())
 	}
+
 	userId, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
@@ -127,10 +128,12 @@ func (uc *userController) UpdateUserImage(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
+
 	res, err := uc.uu.UpdateUserImage(imageFile, uint(userId))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, errors.New("画像が変更できませんでした"))
+		return c.JSON(http.StatusBadRequest, err.Error())
 	}
+
 	return c.JSON(http.StatusOK, res)
 }
 

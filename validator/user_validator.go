@@ -51,7 +51,7 @@ func (uv *userValidator) UserImageValidator(file *multipart.FileHeader) error {
 	const maxFileSize = 10 << 20
 	fileBytes, err := io.ReadAll(src)
 	if err != nil {
-		return err
+		return errors.New("ファイルを読み込めません")
 	}
 	if len(fileBytes) > maxFileSize {
 		return errors.New("ファイルサイズが大きすぎます")
