@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"errors"
 	"mime/multipart"
 	"os"
 	"time"
@@ -34,6 +35,12 @@ func NewUserUsecase(ur repository.IUserRepository, uv validator.IUserValidator) 
 func (uu *userUsecase) SignUp(user model.User) (model.UserResponse, error) {
 	if err := uu.uv.UserValidator(user); err != nil {
 		return model.UserResponse{}, err
+	}
+
+	verifiyUser := model.User{}
+	uu.ur.GetUserByEmail(&verifiyUser, user.Email)
+	if verifiyUser.ID != 0 {
+		return model.UserResponse{}, errors.New("このメールアドレスは既に登録されています")
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), 10)
