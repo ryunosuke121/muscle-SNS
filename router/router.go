@@ -7,7 +7,7 @@ import (
 	"github.com/ryunosuke121/muscle-SNS/controller"
 )
 
-func NewRouter(uc controller.IUserController) *echo.Echo {
+func NewRouter(uc controller.IUserController, tc controller.TrainingController, gc controller.GroupController) *echo.Echo {
 	e := echo.New()
 
 	e.POST("/signup", uc.SignUp)
@@ -33,27 +33,27 @@ func NewRouter(uc controller.IUserController) *echo.Echo {
 	//ユーザーの画像の更新
 	e.PUT("/user/image/:id", uc.UpdateUserImage)
 
-	// //トレーニングの作成
-	// e.POST("/training", controller.CreateTraining)
-	// //トレーニングの取得
-	// e.GET("/training/:training_id", controller.GetTraining)
-	// //あるユーザーのトレーニングを複数取得
-	// e.GET("/user/trainings/:user_id", controller.GetUserTrainings)
+	//トレーニングの作成
+	e.POST("/training", tc.CreateTraining)
+	//トレーニングの取得
+	e.GET("/training/:training_id", tc.GetTraining)
+	//あるユーザーのトレーニングを複数取得
+	e.GET("/user/trainings/:user_id", tc.GetUserTrainings)
 
-	// //投稿の作成
-	// e.POST("/post", controller.CreatePost)
-	// //あるユーザーの投稿を複数取得
-	// e.GET("/user/post/:user_id", controller.GetUserPosts)
-	// //あるグループの投稿の取得
-	// e.GET("/group/posts/:group_id", controller.GetGroupPosts)
+	//投稿の作成
+	e.POST("/post", tc.CreatePost)
+	//あるユーザーの投稿を複数取得
+	e.GET("/user/post/:user_id", tc.GetUserPosts)
+	//あるグループの投稿の取得
+	e.GET("/group/posts/:group_id", gc.GetGroupPosts)
 
-	// //グループ一覧の取得
-	// e.GET("/groups", controller.GetGroups)
+	//グループ一覧の取得
+	e.GET("/groups", gc.GetGroups)
 
-	// //グループ内のランキングを取得
-	// e.GET("/group/ranking/:group_id", controller.GroupRanking)
-	// //ユーザーの総重量を取得
-	// e.GET("/user/total_weight/:user_id", controller.TotalWeight)
+	//グループ内のランキングを取得
+	e.GET("/group/ranking/:group_id", controller.GroupRanking)
+	//ユーザーの総重量を取得
+	e.GET("/user/total_weight/:user_id", controller.TotalWeight)
 
 	return e
 }

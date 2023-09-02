@@ -13,8 +13,8 @@ RUN go mod download
 # https://docs.docker.com/engine/reference/builder/#copy
 COPY ./ ./
 
-RUN chmod +x ./migrate.sh
-CMD [ "./migrate.sh" ]
+# RUN chmod +x ./migrate.sh
+# CMD [ "./migrate.sh" ]
 
 # Build
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o app

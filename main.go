@@ -23,7 +23,9 @@ func main() {
 	userRepository := repository.NewUserRepository(db, client, presignS3client)
 	userUsecase := usecase.NewUserUsecase(userRepository, userValidator)
 	userController := controller.NewUserController(userUsecase)
-	e := router.NewRouter(userController)
+	trainingController := controller.NewTrainingController(client, presignS3client)
+	groupController := controller.NewGroupController(client, presignS3client)
+	e := router.NewRouter(userController, *trainingController, *groupController)
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
