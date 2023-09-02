@@ -15,7 +15,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/ryunosuke121/muscle-SNS/db"
 	"github.com/ryunosuke121/muscle-SNS/model"
-	"github.com/ryunosuke121/muscle-SNS/s3client"
 )
 
 type ResponseGroupPosts struct {
@@ -23,8 +22,19 @@ type ResponseGroupPosts struct {
 	Posts []model.Post `json:"posts"`
 }
 
+type GroupController struct {
+	s3Client      *s3.Client
+	presignClient *s3.PresignClient
+}
+
+func NewGroupController(s3client *s3.Client, presignClient *s3.PresignClient) *GroupController {
+	return &GroupController{s3client, presignClient}
+}
+
+// トレーニング作成
+
 // あるグループの投稿取得
-func GetGroupPosts(c echo.Context) error {
+func (gc *GroupController) GetGroupPosts(c echo.Context) error {
 	id := c.Param("group_id")
 	users := new([]model.User)
 	db := db.NewDB()
@@ -51,7 +61,7 @@ func GetGroupPosts(c echo.Context) error {
 					Bucket: aws.String(os.Getenv("BUCKET_NAME")),
 					Key:    aws.String(post.ImageUrl),
 				}
-				rq, err := s3client.PresignClient.PresignGetObject(context.Background(), param)
+				rq, err := gc.presignClient.PresignGetObject(context.Background(), param)
 				if err != nil {
 					return
 				}
@@ -76,7 +86,7 @@ func GetGroupPosts(c echo.Context) error {
 }
 
 // グループ一覧取得
-func GetGroups(c echo.Context) error {
+func (gc *GroupController) GetGroups(c echo.Context) error {
 	groups := new([]model.TrainingGroup)
 	db := db.NewDB()
 	db.Preload("Users").Find(&groups)
@@ -88,7 +98,7 @@ func GetGroups(c echo.Context) error {
 				Bucket: aws.String(os.Getenv("BUCKET_NAME")),
 				Key:    aws.String(group.ImageUrl),
 			}
-			rq, err := s3client.PresignClient.PresignGetObject(context.Background(), param)
+			rq, err := gc.presignClient.PresignGetObject(context.Background(), param)
 			if err != nil {
 				return c.JSON(http.StatusBadRequest, err.Error())
 			}

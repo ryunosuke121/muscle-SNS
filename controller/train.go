@@ -8,14 +8,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/ryunosuke121/muscle-SNS/db"
 	"github.com/ryunosuke121/muscle-SNS/model"
-	"github.com/ryunosuke121/muscle-SNS/s3client"
 )
 
 type RequestPost struct {
@@ -24,14 +22,27 @@ type RequestPost struct {
 	Training   model.Training `json:"training"`
 	Comment    string         `json:"comment"`
 }
-
 type ResponsePosts struct {
 	mu    sync.Mutex
 	Posts []model.Post `json:"posts"`
 }
 
+type Response struct {
+	Message string      `json:"message"`
+	Data    interface{} `json:"data"`
+}
+
+type TrainingController struct {
+	s3Client      *s3.Client
+	presignClient *s3.PresignClient
+}
+
+func NewTrainingController(s3client *s3.Client, presignClient *s3.PresignClient) *TrainingController {
+	return &TrainingController{s3client, presignClient}
+}
+
 // トレーニング作成
-func CreateTraining(c echo.Context) error {
+func (tc *TrainingController) CreateTraining(c echo.Context) error {
 	training := new(model.Training)
 	if err := c.Bind(training); err != nil {
 		return err
@@ -48,7 +59,7 @@ func CreateTraining(c echo.Context) error {
 }
 
 // トレーニング取得
-func GetTraining(c echo.Context) error {
+func (tc *TrainingController) GetTraining(c echo.Context) error {
 	id := c.Param("training_id")
 	training := new(model.Training)
 	db := db.NewDB()
@@ -61,7 +72,7 @@ func GetTraining(c echo.Context) error {
 }
 
 // ユーザーのトレーニング取得
-func GetUserTrainings(c echo.Context) error {
+func (tc *TrainingController) GetUserTrainings(c echo.Context) error {
 	id := c.Param("user_id")
 	trainings := new([]model.Training)
 	db := db.NewDB()
@@ -74,7 +85,7 @@ func GetUserTrainings(c echo.Context) error {
 }
 
 // 投稿作成
-func CreatePost(c echo.Context) error {
+func (tc *TrainingController) CreatePost(c echo.Context) error {
 	//　投稿データの受取
 	post := c.FormValue("post_info")
 	var requestPost RequestPost
@@ -97,21 +108,18 @@ func CreatePost(c echo.Context) error {
 		if err != nil {
 			return err
 		}
-
 		imgUrl = fmt.Sprintf("post_image/%s%s", u.String(), imageFile.Filename)
-
 		// s3に画像を保存
 		param := &s3.PutObjectInput{
 			Bucket: aws.String(os.Getenv("BUCKET_NAME")),
 			Key:    aws.String(imgUrl),
 			Body:   src,
 		}
-		_, err = s3client.S3Client.PutObject(context.TODO(), param)
+		_, err = tc.s3Client.PutObject(context.TODO(), param)
 		if err != nil {
 			return err
 		}
 	}
-
 	// 投稿データの作成
 	savePost := model.Post{
 		UserID:     requestPost.UserID,
@@ -121,7 +129,6 @@ func CreatePost(c echo.Context) error {
 		ImageUrl:   imgUrl,
 		CreatedAt:  time.Now(),
 	}
-
 	db := db.NewDB()
 	db.Create(&savePost)
 	res := Response{
@@ -132,7 +139,7 @@ func CreatePost(c echo.Context) error {
 }
 
 // ユーザーの投稿取得
-func GetUserPosts(c echo.Context) error {
+func (tc *TrainingController) GetUserPosts(c echo.Context) error {
 	id := c.Param("user_id")
 	var user model.User
 	db := db.NewDB()
@@ -155,7 +162,7 @@ func GetUserPosts(c echo.Context) error {
 				Bucket: aws.String(os.Getenv("BUCKET_NAME")),
 				Key:    aws.String(post.ImageUrl),
 			}
-			rq, err := s3client.PresignClient.PresignGetObject(context.Background(), param)
+			rq, err := tc.presignClient.PresignGetObject(context.Background(), param)
 			if err != nil {
 				return
 			}

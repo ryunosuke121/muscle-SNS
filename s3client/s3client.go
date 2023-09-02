@@ -8,14 +8,15 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-var S3Client *s3.Client
-var PresignClient *s3.PresignClient
-
-func InitS3Client() *s3.Client {
-	S3Client = s3.NewFromConfig(aws.Config{
-		Region:      "us-east-1",
+func NewS3Client() *s3.Client {
+	s3client := s3.NewFromConfig(aws.Config{
+		Region:      "ap-northeast-1",
 		Credentials: aws.NewCredentialsCache(credentials.NewStaticCredentialsProvider(os.Getenv("AWS_ACCESS_KEY_ID"), os.Getenv("AWS_SECRET_ACCESS_KEY"), "")),
 	})
-	PresignClient = s3.NewPresignClient(S3Client)
-	return S3Client
+	return s3client
+}
+
+func NewPresignS3Client(s3client *s3.Client) *s3.PresignClient {
+	PresignClient := s3.NewPresignClient(s3client)
+	return PresignClient
 }
