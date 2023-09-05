@@ -5,33 +5,34 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/ryunosuke121/muscle-SNS/controller"
+	"github.com/ryunosuke121/muscle-SNS/middleware"
 )
 
 func NewRouter(uc controller.IUserController, tc controller.TrainingController, gc controller.GroupController) *echo.Echo {
 	e := echo.New()
 
-	e.POST("/signup", uc.SignUp)
-	e.POST("/login", uc.Login)
-	e.POST("/logout", uc.Logout)
+	client, err := middleware.NewAuthClient()
+	if err != nil {
+		e.Logger.Fatal(err)
+	}
 
-	e.GET("/", func(c echo.Context) error {
-		return c.HTML(http.StatusOK, "Hello")
-	})
+	e.POST("/login", uc.Login, client.CheckToken)
+	e.POST("/logout", uc.Logout)
 
 	e.GET("/ping", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, struct{ Status string }{Status: "OK"})
 	})
 
-	//ユーザーの作成
-	e.POST("/user", uc.SignUp)
 	//ユーザーを複数取得
-	e.GET("/users", uc.GetUsersById)
+	e.GET("/user", uc.GetUsersById)
+
+	u := e.Group("/user", client.CheckToken)
 	//ユーザー名の更新
-	e.PUT("/user/name/:id", uc.UpdateUserName)
+	u.PUT("/name", uc.UpdateUserName)
 	//ユーザーのトレーニンググループの更新
-	e.PUT("/user/training_group/:id", uc.UpdateUserTrainingGroup)
+	u.PUT("/training_group", uc.UpdateUserTrainingGroup)
 	//ユーザーの画像の更新
-	e.PUT("/user/image/:id", uc.UpdateUserImage)
+	u.PUT("/image", uc.UpdateUserImage)
 
 	//トレーニングの作成
 	e.POST("/training", tc.CreateTraining)
