@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
-	"github.com/ryunosuke121/muscle-SNS/model"
+	"github.com/ryunosuke121/muscle-SNS/src/model"
 	"github.com/ryunosuke121/muscle-SNS/utils"
 	"gorm.io/gorm"
 )

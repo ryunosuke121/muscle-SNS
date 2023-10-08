@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/ryunosuke121/muscle-SNS/model"
-	"github.com/ryunosuke121/muscle-SNS/repository"
-	"github.com/ryunosuke121/muscle-SNS/validator"
+	"github.com/ryunosuke121/muscle-SNS/src/model"
+	"github.com/ryunosuke121/muscle-SNS/src/repository"
+	"github.com/ryunosuke121/muscle-SNS/src/validator"
 	"golang.org/x/crypto/bcrypt"
 )
 

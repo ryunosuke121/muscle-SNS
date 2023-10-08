@@ -22,6 +22,7 @@ func NewDB() *gorm.DB {
 		os.Getenv("MYSQL_PASSWORD"), os.Getenv("MYSQL_HOST"),
 		os.Getenv("MYSQL_PORT"), os.Getenv("MYSQL_DB"))
 
+	log.Println(url)
 	db, err := gorm.Open(mysql.Open(url), &gorm.Config{})
 	if err != nil {
 		log.Fatalln(err)

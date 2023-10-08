@@ -8,9 +8,9 @@ import (
 	"strconv"
 
 	"github.com/labstack/echo/v4"
-	"github.com/ryunosuke121/muscle-SNS/middleware"
-	"github.com/ryunosuke121/muscle-SNS/model"
-	"github.com/ryunosuke121/muscle-SNS/usecase"
+	"github.com/ryunosuke121/muscle-SNS/src/middleware"
+	"github.com/ryunosuke121/muscle-SNS/src/model"
+	"github.com/ryunosuke121/muscle-SNS/src/usecase"
 )
 
 type IUserController interface {

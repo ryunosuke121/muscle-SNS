@@ -5,13 +5,13 @@ import (
 	"os"
 
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/ryunosuke121/muscle-SNS/controller"
-	"github.com/ryunosuke121/muscle-SNS/db"
-	"github.com/ryunosuke121/muscle-SNS/repository"
 	"github.com/ryunosuke121/muscle-SNS/router"
 	"github.com/ryunosuke121/muscle-SNS/s3client"
-	"github.com/ryunosuke121/muscle-SNS/usecase"
-	"github.com/ryunosuke121/muscle-SNS/validator"
+	"github.com/ryunosuke121/muscle-SNS/src/controller"
+	"github.com/ryunosuke121/muscle-SNS/src/db"
+	"github.com/ryunosuke121/muscle-SNS/src/repository"
+	"github.com/ryunosuke121/muscle-SNS/src/usecase"
+	"github.com/ryunosuke121/muscle-SNS/src/validator"
 )
 
 func main() {

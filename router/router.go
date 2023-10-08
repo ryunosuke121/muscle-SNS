@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/ryunosuke121/muscle-SNS/controller"
-	"github.com/ryunosuke121/muscle-SNS/middleware"
+	"github.com/ryunosuke121/muscle-SNS/src/controller"
+	"github.com/ryunosuke121/muscle-SNS/src/middleware"
 )
 
 func NewRouter(uc controller.IUserController, tc controller.TrainingController, gc controller.GroupController) *echo.Echo {
