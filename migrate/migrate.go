@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/ryunosuke121/muscle-SNS/db"
-	"github.com/ryunosuke121/muscle-SNS/model"
+	"github.com/ryunosuke121/muscle-SNS/src/db"
+	"github.com/ryunosuke121/muscle-SNS/src/model"
 )
 
 func main() {

@@ -1,13 +1,16 @@
 package controller
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/labstack/echo/v4"
-	"github.com/ryunosuke121/muscle-SNS/model"
-	"github.com/ryunosuke121/muscle-SNS/usecase"
+	"github.com/ryunosuke121/muscle-SNS/src/middleware"
+	"github.com/ryunosuke121/muscle-SNS/src/model"
+	"github.com/ryunosuke121/muscle-SNS/src/usecase"
 )
 
 type IUserController interface {
@@ -41,7 +44,17 @@ func (uc *userController) SignUp(c echo.Context) error {
 }
 
 func (uc *userController) Login(c echo.Context) error {
-	return nil
+	decodedToken := middleware.GetDecodedToken(c.Request().Context())
+	if decodedToken == nil {
+		return c.JSON(http.StatusAlreadyReported, errors.New("token is empty").Error())
+	}
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(*decodedToken); err != nil {
+		panic(err)
+	}
+
+	return c.JSON(http.StatusOK, decodedToken)
 }
 
 func (uc *userController) Logout(c echo.Context) error {

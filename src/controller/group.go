@@ -13,8 +13,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/labstack/echo/v4"
-	"github.com/ryunosuke121/muscle-SNS/db"
-	"github.com/ryunosuke121/muscle-SNS/model"
+	"github.com/ryunosuke121/muscle-SNS/src/db"
+	"github.com/ryunosuke121/muscle-SNS/src/model"
 )
 
 type ResponseGroupPosts struct {

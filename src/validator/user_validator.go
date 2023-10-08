@@ -7,7 +7,7 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/go-ozzo/ozzo-validation/v4/is"
-	"github.com/ryunosuke121/muscle-SNS/model"
+	"github.com/ryunosuke121/muscle-SNS/src/model"
 	"github.com/ryunosuke121/muscle-SNS/utils"
 )
 

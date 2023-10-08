@@ -1,8 +1,8 @@
 package usecase
 
 import (
-	"github.com/ryunosuke121/muscle-SNS/model"
-	"github.com/ryunosuke121/muscle-SNS/repository"
+	"github.com/ryunosuke121/muscle-SNS/src/model"
+	"github.com/ryunosuke121/muscle-SNS/src/repository"
 )
 
 type ITrainUsecase interface {
