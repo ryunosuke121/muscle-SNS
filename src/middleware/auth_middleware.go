@@ -27,7 +27,7 @@ type AuthMiddleware struct {
 }
 
 func NewAuthClient() (*AuthMiddleware, error) {
-	opt := option.WithCredentialsFile("/Users/itouryuunosuke/Project/go/muscle-SNS/eco-lane-398113-firebase-adminsdk-j03hg-9d416d1188.json")
+	opt := option.WithCredentialsFile("/app/eco-lane-398113-firebase-adminsdk-j03hg-9d416d1188.json")
 	ctx := context.Background()
 	app, err := firebase.NewApp(ctx, nil, opt)
 	if err != nil {
