@@ -8,6 +8,8 @@ services:
       - "8080:8080"
     volumes:
       - .:/app
+    networks:
+      - muscle-sns-network
   db:
     container_name: muscle-sns-db
     platform: linux/x86_64
