@@ -17,12 +17,12 @@ import (
 
 type IUserRepository interface {
 	CreateUser(user *model.User) error
-	GetUserById(user *model.User, userId uint) error
-	UpdateUserName(user *model.User, userId uint, userName string) error
-	UpdateUserTrainingGroup(user *model.User, userId uint, groupId uint) error
+	GetUserById(user *model.User, userId string) error
+	UpdateUserName(user *model.User, userId string, userName string) error
+	UpdateUserTrainingGroup(user *model.User, userId string, groupId uint) error
 	GetUserByEmail(user *model.User, email string) error
-	GetUserImageUrlById(userId uint) (string, error)
-	SetUserImage(user *model.User, userId uint, file *multipart.FileHeader) error
+	GetUserImageUrlById(userId string) (string, error)
+	SetUserImage(user *model.User, userId string, file *multipart.FileHeader) error
 }
 
 type userRepository struct {
@@ -43,7 +43,7 @@ func (ur *userRepository) CreateUser(user *model.User) error {
 	return nil
 }
 
-func (ur *userRepository) GetUserById(user *model.User, userId uint) error {
+func (ur *userRepository) GetUserById(user *model.User, userId string) error {
 	result := ur.db.First(&user, userId)
 	if result.Error != nil {
 		return result.Error
@@ -69,7 +69,7 @@ func (ur *userRepository) GetUserByEmail(user *model.User, email string) error {
 	return nil
 }
 
-func (ur *userRepository) UpdateUserName(user *model.User, userId uint, userName string) error {
+func (ur *userRepository) UpdateUserName(user *model.User, userId string, userName string) error {
 	result := ur.db.Model(user).Where("id = ?", userId).Update("name", userName)
 	if result.Error != nil {
 		return result.Error
@@ -87,7 +87,7 @@ func (ur *userRepository) UpdateUserName(user *model.User, userId uint, userName
 	return nil
 }
 
-func (ur *userRepository) UpdateUserTrainingGroup(user *model.User, userId uint, groupId uint) error {
+func (ur *userRepository) UpdateUserTrainingGroup(user *model.User, userId string, groupId uint) error {
 	result := ur.db.Model(user).Where("id = ?", userId).Update("training_group_id", groupId)
 	if result.Error != nil {
 		return result.Error
@@ -105,7 +105,7 @@ func (ur *userRepository) UpdateUserTrainingGroup(user *model.User, userId uint,
 	return nil
 }
 
-func (ur *userRepository) GetUserImageUrlById(userId uint) (string, error) {
+func (ur *userRepository) GetUserImageUrlById(userId string) (string, error) {
 	user := model.User{}
 	result := ur.db.First(&user, userId)
 	if result.Error != nil {
@@ -128,7 +128,7 @@ func (ur *userRepository) GetUserImageUrlById(userId uint) (string, error) {
 	return res.URL, nil
 }
 
-func (ur *userRepository) SetUserImage(user *model.User, userId uint, file *multipart.FileHeader) error {
+func (ur *userRepository) SetUserImage(user *model.User, userId string, file *multipart.FileHeader) error {
 	src, err := file.Open()
 	if err != nil {
 		return err

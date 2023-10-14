@@ -12,6 +12,11 @@ type User struct {
 	Trainings       []Training    `json:"trainings"`
 }
 
+type SignUpRequestSchema struct {
+	Name            string `json:"name" validate:"required"`
+	TrainingGroupID uint   `json:"training_group_id"`
+}
+
 type UserResponse struct {
 	ID              uint   `json:"id"`
 	Name            string `json:"name"`

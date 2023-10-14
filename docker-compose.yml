@@ -10,6 +10,8 @@ services:
       - .:/app
     networks:
       - muscle-sns-network
+    depends_on:
+      - db
   db:
     container_name: muscle-sns-db
     platform: linux/x86_64

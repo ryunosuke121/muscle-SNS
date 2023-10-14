@@ -17,7 +17,7 @@ import (
 )
 
 type RequestPost struct {
-	UserID     uint           `json:"user_id"`
+	UserID     string         `json:"user_id"`
 	TrainingID uint           `json:"training_id"`
 	Training   model.Training `json:"training"`
 	Comment    string         `json:"comment"`

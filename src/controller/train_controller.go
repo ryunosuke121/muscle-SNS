@@ -64,19 +64,16 @@ func (tc *TrainController) GetUserTrainings(c echo.Context) error {
 
 // 投稿の作成
 func (tc *TrainController) CreatePost(c echo.Context) error {
-	id := c.Param("id")
-	if id == "" {
+	userId := c.Param("id")
+	if userId == "" {
 		return c.JSON(http.StatusBadRequest, "user_id is empty")
 	}
-	userId, err := strconv.ParseUint(id, 10, 64)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
-	}
+
 	post := model.Post{}
 	if err := c.Bind(&post); err != nil {
 		return err
 	}
-	post.UserID = uint(userId)
+	post.UserID = userId
 	if err := tc.tu.CreatePost(&post); err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}

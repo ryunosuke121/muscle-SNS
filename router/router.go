@@ -16,6 +16,7 @@ func NewRouter(uc controller.IUserController, tc controller.TrainingController, 
 		e.Logger.Fatal(err)
 	}
 
+	e.POST("/signup", uc.SignUp, client.CheckToken)
 	e.POST("/login", uc.Login, client.CheckToken)
 	e.POST("/logout", uc.Logout)
 

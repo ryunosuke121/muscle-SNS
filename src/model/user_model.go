@@ -1,10 +1,9 @@
 package model
 
 type User struct {
-	ID              uint          `json:"id" gorm:"primaryKey"`
+	ID              string        `json:"id" gorm:"primaryKey;size:64"`
 	Name            string        `json:"name" gorm:"not null" validate:"required"`
 	Email           string        `json:"email" gorm:"unique" validate:"required,email"`
-	Password        string        `json:"password" validate:"required,min=4,max=32"`
 	TrainingGroupID uint          `json:"training_group_id"`
 	TrainingGroup   TrainingGroup `json:"training_group"`
 	ImageUrl        string        `json:"image_url"`
@@ -13,7 +12,7 @@ type User struct {
 }
 
 type UserResponse struct {
-	ID              uint   `json:"id"`
+	ID              string `json:"id"`
 	Name            string `json:"name"`
 	Email           string `json:"email"`
 	TrainingGroupID uint   `json:"training_group_id"`

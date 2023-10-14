@@ -1,7 +1,6 @@
 package usecase
 
 import (
-	"errors"
 	"mime/multipart"
 	"os"
 	"time"
@@ -10,17 +9,16 @@ import (
 	"github.com/ryunosuke121/muscle-SNS/src/model"
 	"github.com/ryunosuke121/muscle-SNS/src/repository"
 	"github.com/ryunosuke121/muscle-SNS/src/validator"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type IUserUseCase interface {
 	SignUp(user model.User) (model.UserResponse, error)
 	Login(user model.User) (string, error)
-	GetUserImageUrlById(userId uint) (string, error)
-	GetUserById(user *model.User, userId uint) (model.UserResponse, error)
-	UpdateUserName(name string, userId uint) (model.UserResponse, error)
-	UpdateUserTrainingGroup(groupId uint, userId uint) (model.UserResponse, error)
-	UpdateUserImage(file *multipart.FileHeader, userId uint) (model.UserResponse, error)
+	GetUserImageUrlById(userId string) (string, error)
+	GetUserById(user *model.User, userId string) (model.UserResponse, error)
+	UpdateUserName(name string, userId string) (model.UserResponse, error)
+	UpdateUserTrainingGroup(groupId uint, userId string) (model.UserResponse, error)
+	UpdateUserImage(file *multipart.FileHeader, userId string) (model.UserResponse, error)
 }
 
 type userUsecase struct {
@@ -33,25 +31,10 @@ func NewUserUsecase(ur repository.IUserRepository, uv validator.IUserValidator) 
 }
 
 func (uu *userUsecase) SignUp(user model.User) (model.UserResponse, error) {
-	if err := uu.uv.UserValidator(user); err != nil {
-		return model.UserResponse{}, err
-	}
-
-	verifiyUser := model.User{}
-	uu.ur.GetUserByEmail(&verifiyUser, user.Email)
-	if verifiyUser.ID != 0 {
-		return model.UserResponse{}, errors.New("このメールアドレスは既に登録されています")
-	}
-
-	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), 10)
-	if err != nil {
-		return model.UserResponse{}, err
-	}
-
 	newUser := model.User{
+		ID:              user.ID,
 		Name:            user.Name,
 		Email:           user.Email,
-		Password:        string(hash),
 		TrainingGroupID: user.TrainingGroupID,
 	}
 
@@ -79,10 +62,6 @@ func (uu *userUsecase) Login(user model.User) (string, error) {
 		return "", err
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(storedUser.Password), []byte(user.Password)); err != nil {
-		return "", err
-	}
-
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": storedUser.ID,
 		"exp":     time.Now().Add(time.Hour * 24).Unix(),
@@ -94,7 +73,7 @@ func (uu *userUsecase) Login(user model.User) (string, error) {
 	return tokenString, nil
 }
 
-func (uu *userUsecase) GetUserImageUrlById(userId uint) (string, error) {
+func (uu *userUsecase) GetUserImageUrlById(userId string) (string, error) {
 	imgUrl, err := uu.ur.GetUserImageUrlById(userId)
 	if err != nil {
 		return "", err
@@ -102,7 +81,7 @@ func (uu *userUsecase) GetUserImageUrlById(userId uint) (string, error) {
 	return imgUrl, nil
 }
 
-func (uu *userUsecase) GetUserById(user *model.User, userId uint) (model.UserResponse, error) {
+func (uu *userUsecase) GetUserById(user *model.User, userId string) (model.UserResponse, error) {
 	if err := uu.ur.GetUserById(user, userId); err != nil {
 		return model.UserResponse{}, err
 	}
@@ -118,7 +97,7 @@ func (uu *userUsecase) GetUserById(user *model.User, userId uint) (model.UserRes
 	return resUser, nil
 }
 
-func (uu *userUsecase) UpdateUserName(name string, userId uint) (model.UserResponse, error) {
+func (uu *userUsecase) UpdateUserName(name string, userId string) (model.UserResponse, error) {
 	user := &model.User{}
 	if err := uu.ur.UpdateUserName(user, userId, name); err != nil {
 		return model.UserResponse{}, err
@@ -135,7 +114,7 @@ func (uu *userUsecase) UpdateUserName(name string, userId uint) (model.UserRespo
 	return resUser, nil
 }
 
-func (uu *userUsecase) UpdateUserTrainingGroup(groupId uint, userId uint) (model.UserResponse, error) {
+func (uu *userUsecase) UpdateUserTrainingGroup(groupId uint, userId string) (model.UserResponse, error) {
 	user := &model.User{}
 
 	if err := uu.ur.UpdateUserTrainingGroup(user, userId, groupId); err != nil {
@@ -153,7 +132,7 @@ func (uu *userUsecase) UpdateUserTrainingGroup(groupId uint, userId uint) (model
 	return resUser, nil
 }
 
-func (uu *userUsecase) UpdateUserImage(file *multipart.FileHeader, userId uint) (model.UserResponse, error) {
+func (uu *userUsecase) UpdateUserImage(file *multipart.FileHeader, userId string) (model.UserResponse, error) {
 	if err := uu.uv.UserImageValidator(file); err != nil {
 		return model.UserResponse{}, err
 	}

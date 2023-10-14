@@ -33,10 +33,6 @@ func (uv *userValidator) UserValidator(user model.User) error {
 			validation.Length(1, 30).Error("メールアドレスは30文字以内で入力してください"),
 			is.Email.Error("メールアドレスの形式が正しくありません"),
 		),
-		validation.Field(&user.Password,
-			validation.Required.Error("パスワードを入力してください"),
-			validation.Length(8, 32).Error("パスワードは8文字以上32文字以内で入力してください"),
-		),
 	)
 }
 

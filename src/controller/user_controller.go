@@ -32,9 +32,23 @@ func NewUserController(uu usecase.IUserUseCase) IUserController {
 }
 
 func (uc *userController) SignUp(c echo.Context) error {
-	user := model.User{}
-	if err := c.Bind(&user); err != nil {
+	req := SignUpRequestSchema{}
+	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	decodedToken := middleware.GetDecodedToken(c.Request().Context())
+	if decodedToken == nil {
+		return c.JSON(http.StatusAlreadyReported, errors.New("token is empty").Error())
+	}
+	user_id := (*decodedToken).Claims["user_id"].(string)
+	email := (*decodedToken).Claims["email"].(string)
+
+	user := model.User{
+		ID:              user_id,
+		Name:            req.Name,
+		Email:           email,
+		TrainingGroupID: req.TrainingGroupID,
 	}
 	userRes, err := uc.uu.SignUp(user)
 	if err != nil {
@@ -62,16 +76,12 @@ func (uc *userController) Logout(c echo.Context) error {
 }
 
 func (uc *userController) GetUsersById(c echo.Context) error {
-	strIds := c.QueryParams()["id"]
-	ids, err := strConvertUint(strIds)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
-	}
+	ids := c.QueryParams()["id"]
 
 	var users []model.UserResponse
 	for _, id := range ids {
 		user := model.User{}
-		res, err := uc.uu.GetUserById(&user, uint(id))
+		res, err := uc.uu.GetUserById(&user, id)
 		if err == nil {
 			users = append(users, res)
 		}
@@ -80,13 +90,9 @@ func (uc *userController) GetUsersById(c echo.Context) error {
 }
 
 func (uc *userController) UpdateUserName(c echo.Context) error {
-	id := c.Param("id")
-	if id == "" {
+	userId := c.Param("id")
+	if userId == "" {
 		return c.JSON(http.StatusBadRequest, errors.New("userId is empty").Error())
-	}
-	userId, err := strconv.ParseUint(id, 10, 64)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
 	name := c.FormValue("name")
@@ -94,7 +100,7 @@ func (uc *userController) UpdateUserName(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, errors.New("name is empty").Error())
 	}
 
-	res, err := uc.uu.UpdateUserName(name, uint(userId))
+	res, err := uc.uu.UpdateUserName(name, userId)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
@@ -103,14 +109,11 @@ func (uc *userController) UpdateUserName(c echo.Context) error {
 }
 
 func (uc *userController) UpdateUserTrainingGroup(c echo.Context) error {
-	id := c.Param("id")
-	if id == "" {
+	userId := c.Param("id")
+	if userId == "" {
 		return c.JSON(http.StatusBadRequest, errors.New("userId is empty").Error())
 	}
-	userId, err := strconv.ParseUint(id, 10, 64)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
-	}
+
 	groupIdstr := c.FormValue("group_id")
 	if groupIdstr == "" {
 		return c.JSON(http.StatusBadRequest, errors.New("groupId is empty").Error())
@@ -120,7 +123,7 @@ func (uc *userController) UpdateUserTrainingGroup(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	res, err := uc.uu.UpdateUserTrainingGroup(uint(groupId), uint(userId))
+	res, err := uc.uu.UpdateUserTrainingGroup(uint(groupId), userId)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
@@ -129,14 +132,9 @@ func (uc *userController) UpdateUserTrainingGroup(c echo.Context) error {
 }
 
 func (uc *userController) UpdateUserImage(c echo.Context) error {
-	id := c.Param("id")
-	if id == "" {
+	userId := c.Param("id")
+	if userId == "" {
 		return c.JSON(http.StatusBadRequest, errors.New("userId is empty").Error())
-	}
-
-	userId, err := strconv.ParseUint(id, 10, 64)
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
 	imageFile, err := c.FormFile("user_image")
@@ -144,7 +142,7 @@ func (uc *userController) UpdateUserImage(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	res, err := uc.uu.UpdateUserImage(imageFile, uint(userId))
+	res, err := uc.uu.UpdateUserImage(imageFile, userId)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
