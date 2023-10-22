@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
@@ -23,12 +24,16 @@ func NewDB() *gorm.DB {
 		os.Getenv("MYSQL_PORT"), os.Getenv("MYSQL_DB"))
 
 	log.Println(url)
-	db, err := gorm.Open(mysql.Open(url), &gorm.Config{})
-	if err != nil {
-		log.Fatalln(err)
+	for {
+		db, err := gorm.Open(mysql.Open(url), &gorm.Config{})
+		if err != nil {
+			log.Println(err)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		fmt.Println("Connected")
+		return db
 	}
-	fmt.Println("Connected")
-	return db
 }
 
 // DBを閉じる
