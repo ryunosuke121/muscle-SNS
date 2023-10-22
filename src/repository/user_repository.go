@@ -2,28 +2,18 @@ package repository
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"mime/multipart"
 	"os"
+	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
-	"github.com/ryunosuke121/muscle-SNS/src/model"
+	"github.com/ryunosuke121/muscle-SNS/src/domain"
 	"github.com/ryunosuke121/muscle-SNS/utils"
 	"gorm.io/gorm"
 )
-
-type IUserRepository interface {
-	CreateUser(user *model.User) error
-	GetUserById(user *model.User, userId string) error
-	UpdateUserName(user *model.User, userId string, userName string) error
-	UpdateUserTrainingGroup(user *model.User, userId string, groupId uint) error
-	GetUserByEmail(user *model.User, email string) error
-	GetUserImageUrlById(userId string) (string, error)
-	SetUserImage(user *model.User, userId string, file *multipart.FileHeader) error
-}
 
 type userRepository struct {
 	db              *gorm.DB
@@ -31,46 +21,78 @@ type userRepository struct {
 	s3PresignClient *s3.PresignClient
 }
 
-func NewUserRepository(db *gorm.DB, s3Client *s3.Client, s3PresignClient *s3.PresignClient) IUserRepository {
+func NewUserRepository(db *gorm.DB, s3Client *s3.Client, s3PresignClient *s3.PresignClient) domain.IUserRepository {
 	return &userRepository{db, s3Client, s3PresignClient}
 }
 
-func (ur *userRepository) CreateUser(user *model.User) error {
-	result := ur.db.Create(&user)
+// ユーザーを作成する
+func (ur *userRepository) CreateUser(ctx context.Context, user *domain.User) error {
+	newUser := User{
+		ID:    user.ID.String(),
+		Name:  user.Name.String(),
+		Email: user.Email,
+	}
+
+	result := ur.db.WithContext(ctx).Create(&newUser)
 	if result.Error != nil {
 		return result.Error
 	}
 	return nil
 }
 
-func (ur *userRepository) GetUserById(user *model.User, userId string) error {
-	result := ur.db.First(&user, userId)
+// IDのリストからユーザーを取得する
+func (ur *userRepository) GetUsersByIds(ctx context.Context, userIds []domain.UserID) ([]*domain.User, error) {
+	var users []*User
+	result := ur.db.WithContext(ctx).Where(userIds).Find(&users)
 	if result.Error != nil {
-		return result.Error
+		return nil, result.Error
 	}
-	url, err := ur.GetUserImageUrlById(userId)
+
+	url, err := ur.GetUserImageUrlsByIds(ctx, userIds)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	user.ImageUrl = url
-	return nil
+
+	var domainUsers []*domain.User
+	for _, user := range users {
+		domainUser := domain.User{
+			ID:        domain.UserID(user.ID),
+			Name:      domain.UserName(user.Name),
+			Email:     user.Email,
+			AvatarUrl: url[domain.UserID(user.ID)],
+		}
+		domainUsers = append(domainUsers, &domainUser)
+	}
+	return domainUsers, nil
 }
 
-func (ur *userRepository) GetUserByEmail(user *model.User, email string) error {
-	result := ur.db.Where("email = ?", email).First(&user)
+// メールアドレスからユーザーを取得する
+func (ur *userRepository) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
+	var user User
+	result := ur.db.WithContext(ctx).Where("email = ?", email).First(&user)
 	if result.Error != nil {
-		return result.Error
+		return nil, result.Error
 	}
-	url, err := ur.GetUserImageUrlById(user.ID)
-	if err != nil {
-		return err
+
+	domainUser := domain.User{
+		ID:        domain.UserID(user.ID),
+		Name:      domain.UserName(user.Name),
+		Email:     user.Email,
+		AvatarUrl: "",
+		UserGroup: &domain.UserGroup{
+			ID:       domain.UserGroupID(user.UserGroup.ID),
+			Name:     user.UserGroup.Name,
+			ImageUrl: user.UserGroup.ImageUrl,
+		},
 	}
-	user.ImageUrl = url
-	return nil
+
+	return &domainUser, nil
 }
 
-func (ur *userRepository) UpdateUserName(user *model.User, userId string, userName string) error {
-	result := ur.db.Model(user).Where("id = ?", userId).Update("name", userName)
+// ユーザーの名前を更新する
+func (ur *userRepository) ChangeUserName(ctx context.Context, userId domain.UserID, userName domain.UserName) error {
+	var user User
+	result := ur.db.WithContext(ctx).Model(&user).Where("id = ?", userId).Update("name", userName)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -78,17 +100,13 @@ func (ur *userRepository) UpdateUserName(user *model.User, userId string, userNa
 		return fmt.Errorf("user not found or name is same")
 	}
 
-	ur.db.First(&user, userId)
-	url, err := ur.GetUserImageUrlById(user.ID)
-	if err != nil {
-		return err
-	}
-	user.ImageUrl = url
 	return nil
 }
 
-func (ur *userRepository) UpdateUserTrainingGroup(user *model.User, userId string, groupId uint) error {
-	result := ur.db.Model(user).Where("id = ?", userId).Update("training_group_id", groupId)
+// ユーザーの所属するグループを変更する
+func (ur *userRepository) ChangeUserGroup(ctx context.Context, userId domain.UserID, groupId domain.UserGroupID) error {
+	var user User
+	result := ur.db.WithContext(ctx).Model(&user).Where("id = ?", userId).Update("training_group_id", groupId)
 	if result.Error != nil {
 		return result.Error
 	}
@@ -96,95 +114,112 @@ func (ur *userRepository) UpdateUserTrainingGroup(user *model.User, userId strin
 		return fmt.Errorf("user not found or group is same")
 	}
 
-	ur.db.First(&user, userId)
-	url, err := ur.GetUserImageUrlById(user.ID)
-	if err != nil {
-		return err
-	}
-	user.ImageUrl = url
 	return nil
 }
 
-func (ur *userRepository) GetUserImageUrlById(userId string) (string, error) {
-	user := model.User{}
-	result := ur.db.First(&user, userId)
+// IDのリストからユーザーの画像のURLを取得する
+func (ur *userRepository) GetUserImageUrlsByIds(ctx context.Context, userIds []domain.UserID) (map[domain.UserID]string, error) {
+	var users []*User
+	result := ur.db.WithContext(ctx).Select("id", "image_url").Find(users, userIds)
 	if result.Error != nil {
-		return "", result.Error
+		return nil, result.Error
 	}
 
-	if user.ImageUrl == "" {
-		return "", nil
+	var fileNames []string
+	for _, user := range users {
+		fileNames = append(fileNames, user.ImageUrl)
 	}
 
-	// s3から画像を取得
-	param := s3.GetObjectInput{
-		Bucket: aws.String(os.Getenv("BUCKET_NAME")),
-		Key:    aws.String(user.ImageUrl),
+	fileNameUrlMap := ur.getImageUrlByFileName(fileNames)
+	var userIDUrlMap map[domain.UserID]string
+	for _, user := range users {
+		userIDUrlMap[domain.UserID(user.ID)] = fileNameUrlMap[user.ImageUrl]
 	}
-	res, err := ur.s3PresignClient.PresignGetObject(context.Background(), &param)
-	if err != nil {
-		return "", err
-	}
-	return res.URL, nil
+	return userIDUrlMap, nil
 }
 
-func (ur *userRepository) SetUserImage(user *model.User, userId string, file *multipart.FileHeader) error {
-	src, err := file.Open()
+// ユーザーの画像を変更する
+func (ur *userRepository) ChangeUserImage(ctx context.Context, userId domain.UserID, file *multipart.FileHeader) error {
+	fileName, err := ur.saveUserImage(ctx, userId, file)
 	if err != nil {
 		return err
+	}
+
+	var user User
+	result := ur.db.WithContext(ctx).Model(&user).Where("id = ?", userId).Update("image_url", fileName)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
+
+func (ur *userRepository) saveUserImage(ctx context.Context, userId domain.UserID, file *multipart.FileHeader) (fileName string, err error) {
+	src, err := file.Open()
+	if err != nil {
+		return "", err
 	}
 	// s3にアップロード
 	u, err := uuid.NewRandom()
 	if err != nil {
-		return err
+		return "", err
 	}
 	contentType, err := utils.InspectFileMimeType(file)
 	if err != nil {
-		return err
+		return "", err
 	}
-	extension := getFileExtension(contentType)
+	extension := utils.GetFileExtension(contentType)
 
-	fileName := fmt.Sprintf("user_image/%s%s", u.String(), extension)
-
-	// DBにファイル名を保存
-	user.ImageUrl = fileName
-	result := ur.db.Model(user).Where("id = ?", userId).Update("image_url", fileName)
-	if result.Error != nil {
-		return result.Error
-	}
+	fileName = fmt.Sprintf("user_image/%s%s", u.String(), extension)
 
 	param := s3.PutObjectInput{
 		Bucket: aws.String(os.Getenv("BUCKET_NAME")),
 		Key:    aws.String(fileName),
 		Body:   src,
 	}
-	_, err = ur.s3Client.PutObject(context.TODO(), &param)
+	_, err = ur.s3Client.PutObject(ctx, &param)
 	if err != nil {
-		// アップロードに失敗したらDBのファイル名を空にする
-		result = ur.db.Model(user).Where("id = ?", userId).Update("image_url", "")
-		if result.Error != nil {
-			return errors.New("file upload failed and failed to fix DB")
-		}
-		return err
+		return "", err
 	}
 
-	ur.db.First(&user, userId)
-	url, err := ur.GetUserImageUrlById(user.ID)
-	if err != nil {
-		return err
-	}
-	user.ImageUrl = url
-
-	return nil
+	return fileName, nil
 }
 
-func getFileExtension(mime_type string) string {
-	switch mime_type {
-	case "image/jpeg":
-		return ".jpg"
-	case "image/png":
-		return ".png"
-	default:
-		return ""
+type Result struct {
+	mu        sync.Mutex
+	resultMap map[string]string
+}
+
+func (r *Result) Set(key string, value string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.resultMap[key] = value
+}
+
+// 並行処理で画像のURLを取得する
+func (ur *userRepository) getImageUrlByFileName(fileNames []string) map[string]string {
+	var wg sync.WaitGroup
+	r := Result{resultMap: make(map[string]string)}
+
+	for _, fileName := range fileNames {
+		wg.Add(1)
+		go func(fileName string) {
+			// s3から画像を取得
+			param := s3.GetObjectInput{
+				Bucket: aws.String(os.Getenv("BUCKET_NAME")),
+				Key:    aws.String(fileName),
+			}
+			res, err := ur.s3PresignClient.PresignGetObject(context.Background(), &param)
+			if err != nil {
+				return
+			}
+			r.Set(fileName, res.URL)
+			wg.Done()
+		}(fileName)
 	}
+	wg.Wait()
+	return r.resultMap
 }

@@ -1,106 +1,93 @@
 package controller
 
 import (
-	"bytes"
-	"encoding/json"
-	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/labstack/echo/v4"
-	"github.com/ryunosuke121/muscle-SNS/src/middleware"
-	"github.com/ryunosuke121/muscle-SNS/src/model"
-	"github.com/ryunosuke121/muscle-SNS/src/usecase"
+	"github.com/ryunosuke121/muscle-SNS/src/application"
+	"github.com/ryunosuke121/muscle-SNS/src/domain"
+	"github.com/ryunosuke121/muscle-SNS/utils/middleware"
 )
 
 type IUserController interface {
 	SignUp(c echo.Context) error
-	Login(c echo.Context) error
-	Logout(c echo.Context) error
-	GetUsersById(c echo.Context) error
+	GetUsersByIds(c echo.Context) error
 	UpdateUserName(c echo.Context) error
-	UpdateUserTrainingGroup(c echo.Context) error
+	UpdateUserGroup(c echo.Context) error
 	UpdateUserImage(c echo.Context) error
 }
 
 type userController struct {
-	uu usecase.IUserUseCase
+	us application.IUserService
 }
 
-func NewUserController(uu usecase.IUserUseCase) IUserController {
-	return &userController{uu}
+func NewUserController(us application.IUserService) IUserController {
+	return &userController{us}
 }
 
 func (uc *userController) SignUp(c echo.Context) error {
-	req := SignUpRequestSchema{}
-	if err := c.Bind(&req); err != nil {
+	ctx := c.Request().Context()
+
+	req := new(SignUpRequestSchema)
+	if err := c.Bind(req); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+	if err := c.Validate(req); err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	decodedToken := middleware.GetDecodedToken(c.Request().Context())
-	if decodedToken == nil {
-		return c.JSON(http.StatusAlreadyReported, errors.New("token is empty").Error())
-	}
-	user_id := (*decodedToken).Claims["user_id"].(string)
-	email := (*decodedToken).Claims["email"].(string)
-
-	user := model.User{
-		ID:              user_id,
-		Name:            req.Name,
-		Email:           email,
-		TrainingGroupID: req.TrainingGroupID,
-	}
-	userRes, err := uc.uu.SignUp(user)
+	// ユーザーID, Emailをコンテキストから取得
+	user_id, err := middleware.GetUserId(ctx)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
+	email, err := middleware.GetEmail(ctx)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	userRes, err := uc.us.SignUp(ctx, user_id, domain.UserName(req.Name), email)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
 	return c.JSON(http.StatusOK, userRes)
 }
 
-func (uc *userController) Login(c echo.Context) error {
-	decodedToken := middleware.GetDecodedToken(c.Request().Context())
-	if decodedToken == nil {
-		return c.JSON(http.StatusAlreadyReported, errors.New("token is empty").Error())
-	}
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(*decodedToken); err != nil {
-		panic(err)
-	}
-
-	return c.JSON(http.StatusOK, decodedToken)
-}
-
-func (uc *userController) Logout(c echo.Context) error {
-	return nil
-}
-
-func (uc *userController) GetUsersById(c echo.Context) error {
+// ユーザーを複数取得
+func (uc *userController) GetUsersByIds(c echo.Context) error {
 	ids := c.QueryParams()["id"]
-
-	var users []model.UserResponse
-	for _, id := range ids {
-		user := model.User{}
-		res, err := uc.uu.GetUserById(&user, id)
-		if err == nil {
-			users = append(users, res)
-		}
+	uids := make([]domain.UserID, len(ids))
+	for i, id := range ids {
+		uids[i] = domain.UserID(id)
 	}
-	return c.JSON(http.StatusOK, users)
+
+	res, err := uc.us.GetUsersByIds(c.Request().Context(), uids)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+	return c.JSON(http.StatusOK, res)
 }
 
+// ユーザー名の更新
 func (uc *userController) UpdateUserName(c echo.Context) error {
-	userId := c.Param("id")
-	if userId == "" {
-		return c.JSON(http.StatusBadRequest, errors.New("userId is empty").Error())
+	ctx := c.Request().Context()
+
+	req := new(UpdateUserNameRequestSchema)
+	if err := c.Bind(req); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+	if err := c.Validate(req); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	name := c.FormValue("name")
-	if name == "" {
-		return c.JSON(http.StatusBadRequest, errors.New("name is empty").Error())
+	userId, err := middleware.GetUserId(ctx)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	res, err := uc.uu.UpdateUserName(name, userId)
+	res, err := uc.us.UpdateUserName(ctx, userId, domain.UserName(req.Name))
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
@@ -108,22 +95,23 @@ func (uc *userController) UpdateUserName(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-func (uc *userController) UpdateUserTrainingGroup(c echo.Context) error {
-	userId := c.Param("id")
-	if userId == "" {
-		return c.JSON(http.StatusBadRequest, errors.New("userId is empty").Error())
+func (uc *userController) UpdateUserGroup(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	req := new(UpdateUserGroupRequestSchema)
+	if err := c.Bind(req); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+	if err := c.Validate(req); err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	groupIdstr := c.FormValue("group_id")
-	if groupIdstr == "" {
-		return c.JSON(http.StatusBadRequest, errors.New("groupId is empty").Error())
-	}
-	groupId, err := strconv.ParseUint(groupIdstr, 10, 64)
+	userId, err := middleware.GetUserId(ctx)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	res, err := uc.uu.UpdateUserTrainingGroup(uint(groupId), userId)
+	res, err := uc.us.UpdateUserGroup(ctx, userId, domain.UserGroupID(req.GroupID))
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
@@ -132,17 +120,17 @@ func (uc *userController) UpdateUserTrainingGroup(c echo.Context) error {
 }
 
 func (uc *userController) UpdateUserImage(c echo.Context) error {
-	userId := c.Param("id")
-	if userId == "" {
-		return c.JSON(http.StatusBadRequest, errors.New("userId is empty").Error())
-	}
-
 	imageFile, err := c.FormFile("user_image")
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	res, err := uc.uu.UpdateUserImage(imageFile, userId)
+	userId, err := middleware.GetUserId(c.Request().Context())
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	res, err := uc.us.UpdateUserImage(c.Request().Context(), userId, imageFile)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}

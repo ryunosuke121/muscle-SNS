@@ -4,14 +4,15 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/ryunosuke121/muscle-SNS/router"
-	"github.com/ryunosuke121/muscle-SNS/s3client"
+	"github.com/ryunosuke121/muscle-SNS/src/application"
 	"github.com/ryunosuke121/muscle-SNS/src/controller"
-	"github.com/ryunosuke121/muscle-SNS/src/db"
 	"github.com/ryunosuke121/muscle-SNS/src/repository"
-	"github.com/ryunosuke121/muscle-SNS/src/usecase"
-	"github.com/ryunosuke121/muscle-SNS/src/validator"
+	"github.com/ryunosuke121/muscle-SNS/src/repository/db"
+	"github.com/ryunosuke121/muscle-SNS/src/repository/s3client"
+	echoValidator "github.com/ryunosuke121/muscle-SNS/utils/validator"
 )
 
 func main() {
@@ -20,13 +21,13 @@ func main() {
 	// AWS S3の設定
 	client := s3client.NewS3Client()
 	presignS3client := s3client.NewPresignS3Client(client)
-	userValidator := validator.NewUserValidator()
 	userRepository := repository.NewUserRepository(db, client, presignS3client)
-	userUsecase := usecase.NewUserUsecase(userRepository, userValidator)
-	userController := controller.NewUserController(userUsecase)
-	trainingController := controller.NewTrainingController(client, presignS3client)
-	groupController := controller.NewGroupController(client, presignS3client)
-	e := router.NewRouter(userController, *trainingController, *groupController)
+	userService := application.NewUserService(userRepository)
+	userController := controller.NewUserController(userService)
+	postRepository := repository.NewPostRepository(db, client, presignS3client)
+	postService := application.NewPostService(postRepository)
+	postController := controller.NewPostController(postService)
+	e := router.NewRouter(userController, postController)
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
@@ -34,6 +35,7 @@ func main() {
 		AllowOrigins: []string{"http://localhost:3000"},
 		AllowMethods: []string{http.MethodGet, http.MethodPut, http.MethodPost, http.MethodDelete},
 	}))
+	e.Validator = echoValidator.New(validator.New())
 
 	httpPort := os.Getenv("HTTP_PORT")
 	if httpPort == "" {

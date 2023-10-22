@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -9,18 +10,11 @@ import (
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
 	"github.com/labstack/echo/v4"
+	"github.com/ryunosuke121/muscle-SNS/src/domain"
 	"google.golang.org/api/option"
 )
 
 type decodedTokenKey struct{}
-
-func GetDecodedToken(c context.Context) *auth.Token {
-	token, ok := c.Value(decodedTokenKey{}).(*auth.Token)
-	if !ok {
-		return nil
-	}
-	return token
-}
 
 type AuthMiddleware struct {
 	AuthClient *auth.Client
@@ -63,4 +57,40 @@ func (am *AuthMiddleware) CheckToken(next echo.HandlerFunc) echo.HandlerFunc {
 
 		return next(c)
 	}
+}
+
+func GetDecodedToken(c context.Context) (*auth.Token, error) {
+	token, ok := c.Value(decodedTokenKey{}).(*auth.Token)
+	if !ok {
+		return nil, fmt.Errorf("failed to get decoded token")
+	}
+	return token, nil
+}
+
+func GetUserId(c context.Context) (domain.UserID, error) {
+	decodedToken, err := GetDecodedToken(c)
+	if err != nil || decodedToken == nil {
+		return "", err
+	}
+
+	user_id, ok := (*decodedToken).Claims["user_id"].(string)
+	if !ok {
+		return "", fmt.Errorf("failed to get user_id")
+	}
+
+	return domain.UserID(user_id), nil
+}
+
+func GetEmail(c context.Context) (string, error) {
+	decodedToken, err := GetDecodedToken(c)
+	if err != nil || decodedToken == nil {
+		return "", err
+	}
+
+	email, ok := (*decodedToken).Claims["email"].(string)
+	if !ok {
+		return "", fmt.Errorf("failed to get email")
+	}
+
+	return email, nil
 }

@@ -21,3 +21,14 @@ func InspectFileMimeType(file *multipart.FileHeader) (string, error) {
 	contentType := http.DetectContentType(fileBytes)
 	return contentType, nil
 }
+
+func GetFileExtension(mime_type string) string {
+	switch mime_type {
+	case "image/jpeg":
+		return ".jpg"
+	case "image/png":
+		return ".png"
+	default:
+		return ""
+	}
+}
