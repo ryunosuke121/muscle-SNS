@@ -52,7 +52,7 @@ func (uc *userController) SignUp(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	return c.JSON(http.StatusOK, userRes)
+	return c.JSON(http.StatusCreated, userRes)
 }
 
 // ユーザーを複数取得
