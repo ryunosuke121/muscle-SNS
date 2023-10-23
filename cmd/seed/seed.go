@@ -21,10 +21,11 @@ func main() {
 	}
 
 	userGroups := []repository.UserGroup{}
-	userGroups = append(userGroups, repository.UserGroup{ID: 1, Name: "筋トレ好きあつまれ", ImageUrl: ""})
-	userGroups = append(userGroups, repository.UserGroup{ID: 2, Name: "みんなで筋トレ", ImageUrl: ""})
-	userGroups = append(userGroups, repository.UserGroup{ID: 3, Name: "マッチョになろうぜ。", ImageUrl: ""})
-	userGroups = append(userGroups, repository.UserGroup{ID: 4, Name: "ダンベル好きあつまれ", ImageUrl: ""})
+	userGroups = append(userGroups, repository.UserGroup{ID: 1, Name: "所属なし", ImageUrl: ""})
+	userGroups = append(userGroups, repository.UserGroup{ID: 2, Name: "筋トレ好きあつまれ", ImageUrl: ""})
+	userGroups = append(userGroups, repository.UserGroup{ID: 3, Name: "みんなで筋トレ", ImageUrl: ""})
+	userGroups = append(userGroups, repository.UserGroup{ID: 4, Name: "マッチョになろうぜ。", ImageUrl: ""})
+	userGroups = append(userGroups, repository.UserGroup{ID: 5, Name: "ダンベル好きあつまれ", ImageUrl: ""})
 	result = db.Create(&userGroups)
 	if result.Error != nil {
 		fmt.Println(result.Error)

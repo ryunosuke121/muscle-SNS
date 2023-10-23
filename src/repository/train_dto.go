@@ -7,12 +7,13 @@ import (
 // トレーニング記録
 type Training struct {
 	ID        uint      `json:"id" gorm:"primaryKey"`
-	UserID    string    `json:"user_id" gorm:"not null" validate:"required"`
+	UserID    string    `json:"user_id" gorm:"not null " validate:"required"`
+	User      *User     `json:"user" gorm:"foreignKey:UserID;OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	MenuID    uint      `json:"menu_id" gorm:"not null" validate:"required"`
-	Menu      *Menu     `json:"menu" gorm:"OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	Times     uint      `json:"times" gorm:"not null" `
-	Weight    uint      `json:"weight" gorm:"not null"`
-	Sets      uint      `json:"sets" gorm:"not null"`
+	Menu      *Menu     `json:"menu" gorm:"foreignKey:MenuID;OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Times     uint      `json:"times"`
+	Weight    uint      `json:"weight"`
+	Sets      uint      `json:"sets"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -26,8 +27,9 @@ type Menu struct {
 type Post struct {
 	ID         uint      `json:"id" gorm:"primaryKey"`
 	UserID     string    `json:"user_id" gorm:"not null" validate:"required"`
+	User       *User     `json:"user" gorm:"foreignKey:UserID;OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	TrainingID uint      `json:"training_id" gorm:"not null" validate:"required"`
-	Training   *Training `json:"training" gorm:"OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Training   *Training `json:"training" gorm:"foreignKey:TrainingID;OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Comment    string    `json:"comment" gorm:"not null"`
 	CreatedAt  time.Time `json:"created_at" gorm:"not null"`
 	ImageUrl   string    `json:"image_url"`
