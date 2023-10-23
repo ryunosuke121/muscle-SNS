@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"log"
 	"mime/multipart"
 	"os"
 	"sync"
@@ -43,7 +44,7 @@ func (ur *userRepository) CreateUser(ctx context.Context, user *domain.User) err
 // IDのリストからユーザーを取得する
 func (ur *userRepository) GetUsersByIds(ctx context.Context, userIds []domain.UserID) ([]*domain.User, error) {
 	var users []*User
-	result := ur.db.WithContext(ctx).Where(userIds).Find(&users)
+	result := ur.db.WithContext(ctx).Where(userIds).Joins("UserGroup").Find(&users)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -60,6 +61,11 @@ func (ur *userRepository) GetUsersByIds(ctx context.Context, userIds []domain.Us
 			Name:      domain.UserName(user.Name),
 			Email:     user.Email,
 			AvatarUrl: url[domain.UserID(user.ID)],
+			UserGroup: &domain.UserGroup{
+				ID:       domain.UserGroupID(user.UserGroup.ID),
+				Name:     user.UserGroup.Name,
+				ImageUrl: user.UserGroup.ImageUrl,
+			},
 		}
 		domainUsers = append(domainUsers, &domainUser)
 	}
@@ -120,7 +126,7 @@ func (ur *userRepository) ChangeUserGroup(ctx context.Context, userId domain.Use
 // IDのリストからユーザーの画像のURLを取得する
 func (ur *userRepository) GetUserImageUrlsByIds(ctx context.Context, userIds []domain.UserID) (map[domain.UserID]string, error) {
 	var users []*User
-	result := ur.db.WithContext(ctx).Select("id", "image_url").Find(users, userIds)
+	result := ur.db.WithContext(ctx).Select("id", "image_url").Find(&users, userIds)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -131,7 +137,8 @@ func (ur *userRepository) GetUserImageUrlsByIds(ctx context.Context, userIds []d
 	}
 
 	fileNameUrlMap := ur.getImageUrlByFileName(fileNames)
-	var userIDUrlMap map[domain.UserID]string
+	log.Print(fileNameUrlMap)
+	userIDUrlMap := make(map[domain.UserID]string)
 	for _, user := range users {
 		userIDUrlMap[domain.UserID(user.ID)] = fileNameUrlMap[user.ImageUrl]
 	}
@@ -207,6 +214,11 @@ func (ur *userRepository) getImageUrlByFileName(fileNames []string) map[string]s
 	for _, fileName := range fileNames {
 		wg.Add(1)
 		go func(fileName string) {
+			if fileName == "" {
+				r.Set(fileName, "")
+				wg.Done()
+				return
+			}
 			// s3から画像を取得
 			param := s3.GetObjectInput{
 				Bucket: aws.String(os.Getenv("BUCKET_NAME")),
