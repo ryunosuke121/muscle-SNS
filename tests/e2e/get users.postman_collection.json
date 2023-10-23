@@ -1,0 +1,104 @@
+{
+	"info": {
+		"_postman_id": "de4ceb69-be6a-43a7-85ac-8c09a35948b2",
+		"name": "get users",
+		"description": "ユーザーをidで複数取得する",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "29757344"
+	},
+	"item": [
+		{
+			"name": "get user",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{FirebaseAuthToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/user?id=ZNqaI4W1x7Ro6ogu6MIm2gVm9ld2&id=VVlGK6p6SdgzKnDlaeIpBFmeepW2",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"user"
+					],
+					"query": [
+						{
+							"key": "id",
+							"value": "ZNqaI4W1x7Ro6ogu6MIm2gVm9ld2"
+						},
+						{
+							"key": "id",
+							"value": "VVlGK6p6SdgzKnDlaeIpBFmeepW2"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"const getToken={",
+					"    url: 'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyCBQ47DD6QkmNjQ0oNg_xyoP1_rpEKDtOQ',",
+					"    method: \"post\",",
+					"    body: {",
+					"        mode: 'raw',",
+					"        raw: JSON.stringify({",
+					"            email: 'ryunosuke.ito.121@gmail.com',",
+					"            password: 'Aiueo12345',",
+					"            returnSecureToken: true",
+					"        })",
+					"    },",
+					"    header: {",
+					"        'Content-Type': 'application/json'",
+					"    }",
+					"};",
+					"",
+					"pm.sendRequest(getToken, function (err, response) {",
+					"    console.log(response.json());",
+					"    var jsonData = response.json();",
+					"    pm.collectionVariables.set(\"FirebaseAuthToken\", jsonData.idToken)",
+					"}",
+					")"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "FirebaseAuthToken",
+			"value": ""
+		}
+	]
+}
