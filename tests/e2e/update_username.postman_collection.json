@@ -1,0 +1,92 @@
+{
+	"info": {
+		"_postman_id": "5bf75490-b9f9-42f4-936f-2de1808da9b8",
+		"name": "update_username",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "29757344"
+	},
+	"item": [
+		{
+			"name": "putusername",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{FirebaseAuthToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"testname\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8080/user/name",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"user",
+						"name"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"const getToken={",
+					"    url: 'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyCBQ47DD6QkmNjQ0oNg_xyoP1_rpEKDtOQ',",
+					"    method: \"post\",",
+					"    body: {",
+					"        mode: 'raw',",
+					"        raw: JSON.stringify({",
+					"            email: 'test@example.com',",
+					"            password: 'Aiueo12345',",
+					"            returnSecureToken: true",
+					"        })",
+					"    },",
+					"    header: {",
+					"        'Content-Type': 'application/json'",
+					"    }",
+					"};",
+					"",
+					"pm.sendRequest(getToken, function (err, response) {",
+					"    console.log(response.json());",
+					"    var jsonData = response.json();",
+					"    pm.collectionVariables.set(\"FirebaseAuthToken\", jsonData.idToken)",
+					"}",
+					")"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "FirebaseAuthToken",
+			"value": ""
+		}
+	]
+}
