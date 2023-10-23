@@ -43,6 +43,8 @@ func NewRouter(uc controller.IUserController, pc controller.IPostController) *ec
 	p.POST("", pc.CreatePost)
 	//あるグループの投稿の取得
 	p.GET("/group/:group_id", pc.GetGroupPosts)
+	// 投稿を削除する
+	p.DELETE("/:post_id", pc.DeletePost)
 	// //グループ一覧の取得
 	// e.GET("/groups", gc.GetGroups)
 

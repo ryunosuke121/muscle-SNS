@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"log"
 	"mime/multipart"
 	"os"
 
@@ -27,7 +28,7 @@ func NewPostRepository(db *gorm.DB, s3Client *s3.Client, s3PresignClient *s3.Pre
 // 投稿を取得する
 func (pr *PostRepository) GetPostsByIds(ctx context.Context, ids []domain.PostID) ([]*domain.Post, error) {
 	var posts []*Post
-	result := pr.db.WithContext(ctx).Where(ids).Find(&posts)
+	result := pr.db.WithContext(ctx).Where(ids).Joins("Training").Joins("Training.Menu").Find(&posts)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -43,7 +44,7 @@ func (pr *PostRepository) GetPostsByIds(ctx context.Context, ids []domain.PostID
 // ユーザーの投稿を取得する
 func (pr *PostRepository) GetUserPosts(ctx context.Context, id domain.UserID) ([]*domain.Post, error) {
 	var posts []*Post
-	result := pr.db.WithContext(ctx).Where("user_id = ?", id).Find(&posts)
+	result := pr.db.WithContext(ctx).Where("posts.user_id = ?", id).Joins("Training").Joins("Training.Menu").Find(&posts)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -75,7 +76,13 @@ func (pr *PostRepository) CreatePost(ctx context.Context, post *domain.Post) (*d
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	return convertToPost(&newPost), nil
+
+	createdPost, error := pr.GetPostsByIds(ctx, []domain.PostID{domain.PostID(newPost.ID)})
+	if error != nil {
+		return nil, error
+	}
+
+	return createdPost[0], nil
 }
 
 // 投稿を削除する
@@ -90,7 +97,7 @@ func (pr *PostRepository) DeletePost(ctx context.Context, id domain.PostID) erro
 // グループの投稿を取得する\
 func (pr *PostRepository) GetGroupPosts(ctx context.Context, id domain.UserGroupID) ([]*domain.Post, error) {
 	var posts []*Post
-	result := pr.db.WithContext(ctx).Joins("JOIN users ON users.id = posts.user_id").Where("users.user_group_id = ?", id).Find(&posts)
+	result := pr.db.WithContext(ctx).Joins("LEFT JOIN users ON users.id = posts.user_id").Where("users.user_group_id = ?", id).Joins("Training").Joins("Training.Menu").Find(&posts)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -100,6 +107,7 @@ func (pr *PostRepository) GetGroupPosts(ctx context.Context, id domain.UserGroup
 		domainPost := convertToPost(post)
 		domainPosts = append(domainPosts, domainPost)
 	}
+	log.Print(len(domainPosts))
 	return domainPosts, nil
 }
 

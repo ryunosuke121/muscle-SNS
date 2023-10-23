@@ -101,10 +101,44 @@
 			"response": []
 		},
 		{
-			"name": "New Request",
+			"name": "update_userimage",
 			"request": {
-				"method": "GET",
-				"header": []
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{FirebaseAuthToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "user_image",
+							"type": "file",
+							"src": "/Users/itouryuunosuke/Pictures/IMG_3710.JPG"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://localhost:8080/user/image?",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"user",
+						"image"
+					],
+					"query": [
+						{
+							"key": "",
+							"value": null
+						}
+					]
+				}
 			},
 			"response": []
 		}

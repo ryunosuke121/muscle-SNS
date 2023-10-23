@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -30,7 +31,7 @@ func NewPostController(ps application.IPostService) IPostController {
 
 // 投稿を複数件取得する
 func (pc *PostController) GetPostsByIds(c echo.Context) error {
-	ids := c.QueryParams()["ids"]
+	ids := c.QueryParams()["id"]
 	postIds := make([]domain.PostID, len(ids))
 	for i, id := range ids {
 		postId, err := strconv.Atoi(id)
@@ -66,10 +67,7 @@ func (pc *PostController) GetMyPosts(c echo.Context) error {
 
 // ユーザーの投稿を複数取得する
 func (pc *PostController) GetUserPosts(c echo.Context) error {
-	userId, err := strconv.Atoi(c.Param("user_id"))
-	if err != nil {
-		return c.String(http.StatusBadRequest, "invalid user id")
-	}
+	userId := c.Param("user_id")
 
 	posts, err := pc.ps.GetUserPosts(c.Request().Context(), domain.UserID(userId))
 	if err != nil {
@@ -94,6 +92,7 @@ func (pc *PostController) CreatePost(c echo.Context) error {
 
 	post := new(CreatePostRequestSchema)
 	if err := json.Unmarshal([]byte(c.FormValue("post")), &post); err != nil {
+		log.Print(err.Error())
 		return c.String(http.StatusBadRequest, "invalid post")
 	}
 
@@ -110,6 +109,10 @@ func (pc *PostController) CreatePost(c echo.Context) error {
 	}
 
 	res, err := pc.ps.CreatePost(ctx, createPostReq)
+	if err != nil {
+		log.Print(err.Error())
+		return c.String(http.StatusInternalServerError, err.Error())
+	}
 
 	return c.JSON(http.StatusOK, res)
 }
@@ -128,6 +131,9 @@ func (pc *PostController) DeletePost(c echo.Context) error {
 
 	err = pc.ps.DeletePost(c.Request().Context(), userId, domain.PostID(postId))
 	if err != nil {
+		if err == domain.ErrForbidden {
+			return c.JSON(http.StatusForbidden, err.Error())
+		}
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 

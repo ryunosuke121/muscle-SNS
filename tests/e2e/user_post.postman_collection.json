@@ -1,0 +1,294 @@
+{
+	"info": {
+		"_postman_id": "79fc7fd9-1255-4693-b765-6a9fd2b4b7f1",
+		"name": "user_post",
+		"description": "投稿を作成して、削除するまでの流れをテストします",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "29757344"
+	},
+	"item": [
+		{
+			"name": "create_post",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{FirebaseAuthToken}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "post",
+							"value": "{\"comment\": \"this is comment\",\"training\": {\"menu_id\":1,\"times\": 10,\"weight\": 50,\"sets\": 3}}",
+							"type": "text"
+						},
+						{
+							"key": "image",
+							"type": "file",
+							"src": "/Users/itouryuunosuke/Pictures/IMG_3710.JPG"
+						}
+					]
+				},
+				"url": {
+					"raw": "http://localhost:8080/post",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"post"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get_created_post",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{FirebaseAuthToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/post?id=2&id=1",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"post"
+					],
+					"query": [
+						{
+							"key": "id",
+							"value": "2"
+						},
+						{
+							"key": "id",
+							"value": "1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get user post",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{FirebaseAuthToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/user/post/VVlGK6p6SdgzKnDlaeIpBFmeepW2",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"user",
+						"post",
+						"VVlGK6p6SdgzKnDlaeIpBFmeepW2"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get group posts",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{FirebaseAuthToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/post/group/3",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"post",
+						"group",
+						"3"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "get my post",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{FirebaseAuthToken}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/user/post/my",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"user",
+						"post",
+						"my"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "delete post",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const getToken={",
+							"    url: 'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyCBQ47DD6QkmNjQ0oNg_xyoP1_rpEKDtOQ',",
+							"    method: \"post\",",
+							"    body: {",
+							"        mode: 'raw',",
+							"        raw: JSON.stringify({",
+							"            email: 'ryunosuke.ito.121@gmail.com',",
+							"            password: 'Aiueo12345',",
+							"            returnSecureToken: true",
+							"        })",
+							"    },",
+							"    header: {",
+							"        'Content-Type': 'application/json'",
+							"    }",
+							"};",
+							"",
+							"pm.sendRequest(getToken, function (err, response) {",
+							"    console.log(response.json());",
+							"    var jsonData = response.json();",
+							"    pm.collectionVariables.set(\"FirebaseAuthTokenAnother\", jsonData.idToken)",
+							"}",
+							")"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"let ok = responseCode.code === 403;",
+							"tests[\"successfully forbiddened request\"] = ok;"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{FirebaseAuthTokenAnother}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8080/post/2",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"post",
+						"2"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "delete",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"const getToken={",
+					"    url: 'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyCBQ47DD6QkmNjQ0oNg_xyoP1_rpEKDtOQ',",
+					"    method: \"post\",",
+					"    body: {",
+					"        mode: 'raw',",
+					"        raw: JSON.stringify({",
+					"            email: 'test@example.com',",
+					"            password: 'Aiueo12345',",
+					"            returnSecureToken: true",
+					"        })",
+					"    },",
+					"    header: {",
+					"        'Content-Type': 'application/json'",
+					"    }",
+					"};",
+					"",
+					"pm.sendRequest(getToken, function (err, response) {",
+					"    console.log(response.json());",
+					"    var jsonData = response.json();",
+					"    pm.collectionVariables.set(\"FirebaseAuthToken\", jsonData.idToken)",
+					"}",
+					")"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "FirebaseAuthToken",
+			"value": ""
+		},
+		{
+			"key": "FirebaseAuthTokenAnother",
+			"value": ""
+		}
+	]
+}
