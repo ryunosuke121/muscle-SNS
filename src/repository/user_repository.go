@@ -112,7 +112,7 @@ func (ur *userRepository) ChangeUserName(ctx context.Context, userId domain.User
 // ユーザーの所属するグループを変更する
 func (ur *userRepository) ChangeUserGroup(ctx context.Context, userId domain.UserID, groupId domain.UserGroupID) error {
 	var user User
-	result := ur.db.WithContext(ctx).Model(&user).Where("id = ?", userId).Update("training_group_id", groupId)
+	result := ur.db.WithContext(ctx).Model(&user).Where("id = ?", userId).Update("user_group_id", groupId)
 	if result.Error != nil {
 		return result.Error
 	}
