@@ -11,6 +11,7 @@ import (
 	"github.com/ryunosuke121/muscle-SNS/src/controller"
 	"github.com/ryunosuke121/muscle-SNS/src/repository"
 	"github.com/ryunosuke121/muscle-SNS/src/repository/db"
+	"github.com/ryunosuke121/muscle-SNS/src/repository/redis"
 	"github.com/ryunosuke121/muscle-SNS/src/repository/s3client"
 	echoValidator "github.com/ryunosuke121/muscle-SNS/utils/validator"
 )
@@ -21,13 +22,16 @@ func main() {
 	// AWS S3の設定
 	client := s3client.NewS3Client()
 	presignS3client := s3client.NewPresignS3Client(client)
+	redisClient := redis.NewRedisClient()
 	userRepository := repository.NewUserRepository(db, client, presignS3client)
 	userService := application.NewUserService(userRepository)
 	userController := controller.NewUserController(userService)
-	postRepository := repository.NewPostRepository(db, client, presignS3client)
+	postRepository := repository.NewPostRepository(db, client, presignS3client, redisClient)
 	postService := application.NewPostService(postRepository)
 	postController := controller.NewPostController(postService)
-	e := router.NewRouter(userController, postController)
+	rankingService := application.NewRankingService(userRepository, postRepository)
+	rankingController := controller.NewRankingController(rankingService)
+	e := router.NewRouter(userController, postController, rankingController)
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())

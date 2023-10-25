@@ -2,14 +2,17 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"mime/multipart"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/ryunosuke121/muscle-SNS/src/domain"
 	"github.com/ryunosuke121/muscle-SNS/utils"
 	"gorm.io/gorm"
@@ -19,10 +22,11 @@ type PostRepository struct {
 	db              *gorm.DB
 	s3Client        *s3.Client
 	s3PresignClient *s3.PresignClient
+	redisClient     *redis.Client
 }
 
-func NewPostRepository(db *gorm.DB, s3Client *s3.Client, s3PresignClient *s3.PresignClient) domain.IPostRepository {
-	return &PostRepository{db, s3Client, s3PresignClient}
+func NewPostRepository(db *gorm.DB, s3Client *s3.Client, s3PresignClient *s3.PresignClient, redisClient *redis.Client) domain.IPostRepository {
+	return &PostRepository{db, s3Client, s3PresignClient, redisClient}
 }
 
 // 投稿を取得する
@@ -168,6 +172,23 @@ func (pr *PostRepository) GetUserTrainings(ctx context.Context, id domain.UserID
 
 // メニュー別のユーザーの総重量を取得する
 func (pr *PostRepository) GetUsersTotalWeightByMenuInMonth(ctx context.Context, userIds []domain.UserID, menuId domain.MenuID, year int, month int) (map[domain.UserID]uint, error) {
+	exists, err := pr.redisClient.Exists(ctx, fmt.Sprintf("total_weight_menu_%d_%d_%d", menuId, year, month)).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	if exists == 1 {
+		jsonData, err := pr.redisClient.Get(ctx, fmt.Sprintf("total_weight_menu_%d_%d_%d", menuId, year, month)).Result()
+		if err != nil {
+			return nil, err
+		}
+		var totalWeightMap map[domain.UserID]uint
+		if err = json.Unmarshal([]byte(jsonData), &totalWeightMap); err != nil {
+			return nil, err
+		}
+		return totalWeightMap, nil
+	}
+
 	var results []struct {
 		UserID     string
 		TotalCount uint
@@ -182,11 +203,41 @@ func (pr *PostRepository) GetUsersTotalWeightByMenuInMonth(ctx context.Context, 
 		totalWeightMap[domain.UserID(result.UserID)] = result.TotalCount
 	}
 
+	go func(ctx context.Context, twm map[domain.UserID]uint, menuId domain.MenuID, year int, month int) {
+		jsonData, err := json.Marshal(twm)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		err = pr.redisClient.Set(ctx, fmt.Sprintf("total_weight_menu_%d_%d_%d", menuId, year, month), jsonData, time.Duration(600)).Err()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+	}(ctx, totalWeightMap, menuId, year, month)
+
 	return totalWeightMap, nil
 }
 
 // 月内のユーザーの総重量を取得する
 func (pr *PostRepository) GetUsersTotalWeightInMonth(ctx context.Context, userIds []domain.UserID, year int, month int) (map[domain.UserID]uint, error) {
+	exists, err := pr.redisClient.Exists(ctx, fmt.Sprintf("total_weight_%d_%d", year, month)).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	if exists == 1 {
+		jsonData, err := pr.redisClient.Get(ctx, fmt.Sprintf("total_weight_%d_%d", year, month)).Result()
+		if err != nil {
+			return nil, err
+		}
+		var totalWeightMap map[domain.UserID]uint
+		if err = json.Unmarshal([]byte(jsonData), &totalWeightMap); err != nil {
+			return nil, err
+		}
+		return totalWeightMap, nil
+	}
+
 	var results []struct {
 		UserID     string
 		TotalCount uint
@@ -200,6 +251,19 @@ func (pr *PostRepository) GetUsersTotalWeightInMonth(ctx context.Context, userId
 	for _, result := range results {
 		totalWeightMap[domain.UserID(result.UserID)] = result.TotalCount
 	}
+
+	go func(ctx context.Context, twm map[domain.UserID]uint, year int, month int) {
+		jsonData, err := json.Marshal(twm)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		err = pr.redisClient.Set(ctx, fmt.Sprintf("total_weight_%d_%d", year, month), jsonData, time.Duration(600)).Err()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+	}(ctx, totalWeightMap, year, month)
 
 	return totalWeightMap, nil
 }

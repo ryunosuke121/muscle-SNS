@@ -21,6 +21,13 @@ services:
       - muscle-sns-db-vol:/var/lib/mysql
     networks:
       - muscle-sns-network
+  redis:
+    container_name: muscle-sns-redis
+    image: redis:latest
+    ports:
+      - 6379:6379
+    networks:
+      - muscle-sns-network
 
 volumes:
   muscle-sns-db-vol:
