@@ -8,7 +8,7 @@ import (
 	"github.com/ryunosuke121/muscle-SNS/utils/middleware"
 )
 
-func NewRouter(uc controller.IUserController, pc controller.IPostController) *echo.Echo {
+func NewRouter(uc controller.IUserController, pc controller.IPostController, rc controller.IRankingController) *echo.Echo {
 	e := echo.New()
 
 	client, err := middleware.NewAuthClient()
@@ -35,6 +35,8 @@ func NewRouter(uc controller.IUserController, pc controller.IPostController) *ec
 	u.GET("/post/:user_id", pc.GetUserPosts)
 	// 自分の投稿を複数取得する
 	u.GET("/post/my", pc.GetMyPosts)
+	//ユーザーの月別総重量を取得
+	u.GET("/total_weight/:user_id", rc.GetUserTotalWeightInMonth)
 
 	p := e.Group("/post", client.CheckToken)
 	// 投稿を複数件取得する
@@ -48,10 +50,11 @@ func NewRouter(uc controller.IUserController, pc controller.IPostController) *ec
 	// //グループ一覧の取得
 	// e.GET("/groups", gc.GetGroups)
 
-	// //グループ内のランキングを取得
-	// e.GET("/group/ranking/:group_id", controller.GroupRanking)
-	// //ユーザーの総重量を取得
-	// e.GET("/user/total_weight/:user_id", controller.TotalWeight)
+	r := e.Group("/ranking", client.CheckToken)
+	// グループ内のランキングを取得
+	r.GET("/group/:group_id", rc.GetMonthRankingInGroup)
+	// メニュー別のランキングを取得
+	r.GET("/group/menu/:group_id", rc.GetMonthRankingInGroupByMenu)
 
 	return e
 }

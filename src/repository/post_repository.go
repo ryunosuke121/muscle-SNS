@@ -166,6 +166,44 @@ func (pr *PostRepository) GetUserTrainings(ctx context.Context, id domain.UserID
 	return domainTrainings, nil
 }
 
+// メニュー別のユーザーの総重量を取得する
+func (pr *PostRepository) GetUsersTotalWeightByMenuInMonth(ctx context.Context, userIds []domain.UserID, menuId domain.MenuID, year int, month int) (map[domain.UserID]uint, error) {
+	var results []struct {
+		UserID     string
+		TotalCount uint
+	}
+	result := pr.db.WithContext(ctx).Table("trainings").Select("user_id, sum(weight * times * sets) as total_count").Where("user_id IN ?", userIds).Where("menu_id = ?", menuId).Where("extract(year from created_at) = ?", year).Where("extract(month from created_at) = ?", month).Group("user_id").Scan(&results)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	totalWeightMap := make(map[domain.UserID]uint)
+	for _, result := range results {
+		totalWeightMap[domain.UserID(result.UserID)] = result.TotalCount
+	}
+
+	return totalWeightMap, nil
+}
+
+// 月内のユーザーの総重量を取得する
+func (pr *PostRepository) GetUsersTotalWeightInMonth(ctx context.Context, userIds []domain.UserID, year int, month int) (map[domain.UserID]uint, error) {
+	var results []struct {
+		UserID     string
+		TotalCount uint
+	}
+	result := pr.db.WithContext(ctx).Table("trainings").Select("user_id, sum(weight * times * sets) as total_count").Where("user_id IN ?", userIds).Where("extract(year from created_at) = ?", year).Where("extract(month from created_at) = ?", month).Group("user_id").Scan(&results)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	totalWeightMap := make(map[domain.UserID]uint)
+	for _, result := range results {
+		totalWeightMap[domain.UserID(result.UserID)] = result.TotalCount
+	}
+
+	return totalWeightMap, nil
+}
+
 // TODO: コンテキストを持たせてキャンセルできるようにする
 func (pr *PostRepository) SavePostImage(ctx context.Context, file *multipart.FileHeader) (fileName string, err error) {
 	src, err := file.Open()

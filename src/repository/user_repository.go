@@ -164,6 +164,36 @@ func (ur *userRepository) ChangeUserImage(ctx context.Context, userId domain.Use
 	return nil
 }
 
+func (ur *userRepository) GetUsersInGroup(ctx context.Context, groupId domain.UserGroupID) ([]*domain.User, error) {
+	var users []*User
+	result := ur.db.WithContext(ctx).Where("user_group_id = ?", groupId).Find(&users)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	url, err := ur.GetUserImageUrlsByIds(ctx, []domain.UserID{})
+	if err != nil {
+		return nil, err
+	}
+
+	var domainUsers []*domain.User
+	for _, user := range users {
+		domainUser := domain.User{
+			ID:        domain.UserID(user.ID),
+			Name:      domain.UserName(user.Name),
+			Email:     user.Email,
+			AvatarUrl: url[domain.UserID(user.ID)],
+			UserGroup: &domain.UserGroup{
+				ID:       domain.UserGroupID(user.UserGroup.ID),
+				Name:     user.UserGroup.Name,
+				ImageUrl: user.UserGroup.ImageUrl,
+			},
+		}
+		domainUsers = append(domainUsers, &domainUser)
+	}
+	return domainUsers, nil
+}
+
 func (ur *userRepository) saveUserImage(ctx context.Context, userId domain.UserID, file *multipart.FileHeader) (fileName string, err error) {
 	src, err := file.Open()
 	if err != nil {

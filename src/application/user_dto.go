@@ -73,3 +73,12 @@ type TrainingRequest struct {
 	Weight uint          `json:"weight"`
 	Sets   uint          `json:"sets"`
 }
+
+type GetUserTotalWeightPublic struct {
+	ID          string           `json:"id"`
+	Name        string           `json:"name"`
+	Email       string           `json:"email"`
+	UserGroup   *UserGroupPublic `json:"user_group"`
+	AvatarUrl   string           `json:"avatar_url"`
+	TotalWeight uint             `json:"total_weight"`
+}
