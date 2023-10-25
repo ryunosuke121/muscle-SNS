@@ -3,9 +3,9 @@ services:
   web:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports: 
-      - "80:80"
+      - "8080:8080"
     volumes:
       - .:/app
     networks:
@@ -18,6 +18,11 @@ services:
     image: mysql:8.0
     ports:
       - 3306:3306
+    environment:
+      MYSQL_USER: mysqlusername
+      MYSQL_PASSWORD: mysqluserpass
+      MYSQL_ROOT_PASSWORD: mysqlrootpass
+      MYSQL_DATABASE: muscle-sns-db
     volumes:
       - muscle-sns-db-vol:/var/lib/mysql
     networks:

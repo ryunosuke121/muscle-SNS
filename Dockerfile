@@ -1,8 +1,5 @@
 FROM golang:1.21.2
 
-RUN go install github.com/cosmtrek/air@latest
-RUN go install github.com/rubenv/sql-migrate/...@latest
-
 WORKDIR /app
 
 COPY go.mod ./
@@ -12,10 +9,8 @@ RUN go mod download
 
 COPY . .
 
-# マイグレーションスクリプトの実行権限付与
-RUN chmod +x database/scripts/up.sh
-RUN chmod +x database/scripts/down.sh
+RUN go build -o /build/app ./cmd/main.go
 
-ENV GO_ENV=dev
+EXPOSE 80
 
-CMD ["air", "-c", ".air.toml"]
+CMD ["/build/app"]
