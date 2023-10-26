@@ -18,8 +18,12 @@
 
 ## 使用技術
 フロントエンド: ReactNative  
-バックエンド： Golang, Echo  
-クラウド： AWS S3, ECS on Fargate, RDS  
+バックエンド： Golang, Echo, Gorm, go-playground/validator
+データベース: MySQL:8.0
+キャッシュ： Redis
+認証プロバイダ: Firebase Authentication
+クラウド： AWS S3, ECS on Fargate, RDS
+E2Eテスト: Postman
 
 ## 画面画像
 <img width="422" alt="スクリーンショット 2023-07-24 19 30 46" src="https://github.com/ryunosuke121/muscle-SNS/assets/117281628/3434c0aa-c495-41fc-977a-ed3612d912f0">
