@@ -17,12 +17,12 @@
 - タイムライン
 
 ## 使用技術
-フロントエンド: ReactNative  
-バックエンド： Golang, Echo, Gorm, go-playground/validator
-データベース: MySQL:8.0
-キャッシュ： Redis
-認証プロバイダ: Firebase Authentication
-クラウド： AWS S3, ECS on Fargate, RDS
+フロントエンド: ReactNative \
+バックエンド： Golang, Echo, Gorm, go-playground/validator \
+データベース: MySQL:8.0 \
+キャッシュ： Redis \
+認証プロバイダ: Firebase Authentication \
+クラウド： AWS S3, ECS on Fargate, RDS \
 E2Eテスト: Postman
 
 ## 画面画像
