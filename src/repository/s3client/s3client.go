@@ -15,8 +15,3 @@ func NewS3Client() *s3.Client {
 	})
 	return s3client
 }
-
-func NewPresignS3Client(s3client *s3.Client) *s3.PresignClient {
-	PresignClient := s3.NewPresignClient(s3client)
-	return PresignClient
-}

@@ -21,12 +21,11 @@ func main() {
 
 	// AWS S3の設定
 	client := s3client.NewS3Client()
-	presignS3client := s3client.NewPresignS3Client(client)
 	redisClient := redis.NewRedisClient()
-	userRepository := repository.NewUserRepository(db, client, presignS3client)
+	userRepository := repository.NewUserRepository(db, client)
 	userService := application.NewUserService(userRepository)
 	userController := controller.NewUserController(userService)
-	postRepository := repository.NewPostRepository(db, client, presignS3client, redisClient)
+	postRepository := repository.NewPostRepository(db, client, redisClient)
 	postService := application.NewPostService(postRepository)
 	postController := controller.NewPostController(postService)
 	rankingService := application.NewRankingService(userRepository, postRepository)

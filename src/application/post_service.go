@@ -46,7 +46,7 @@ func (ps *PostService) GetPostsByIds(ctx context.Context, ids []domain.PostID) (
 			UserID:    post.UserID.String(),
 			Comment:   post.Comment,
 			CreatedAt: post.CreatedAt.String(),
-			ImageUrl:  post.ImageUrl,
+			ImageUrl:  post.ImageName,
 		}
 
 		if post.Training != nil {
@@ -94,9 +94,9 @@ func (ps *PostService) CreatePost(ctx context.Context, post *CreatePostRequest) 
 	}
 
 	newPost := &domain.Post{
-		UserID:   post.UserID,
-		Comment:  post.Comment,
-		ImageUrl: fileName,
+		UserID:    post.UserID,
+		Comment:   post.Comment,
+		ImageName: fileName,
 		Training: &domain.Training{
 			UserID: post.UserID,
 			Menu: &domain.Menu{
@@ -156,7 +156,7 @@ func (ps *PostService) convertPublicPost(post *domain.Post) *PostPublic {
 		UserID:    post.UserID.String(),
 		Comment:   post.Comment,
 		CreatedAt: post.CreatedAt.String(),
-		ImageUrl:  post.ImageUrl,
+		ImageUrl:  post.ImageName,
 	}
 
 	if post.Training != nil {
