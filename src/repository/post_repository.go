@@ -221,11 +221,13 @@ func (pr *PostRepository) GetUsersTotalWeightByMenuInMonth(ctx context.Context, 
 
 // 月内のユーザーの総重量を取得する
 func (pr *PostRepository) GetUsersTotalWeightInMonth(ctx context.Context, userIds []domain.UserID, year int, month int) (map[domain.UserID]uint, error) {
+	// キャッシュの存在を確認する
 	exists, err := pr.redisClient.Exists(ctx, fmt.Sprintf("total_weight_%d_%d", year, month)).Result()
 	if err != nil {
 		return nil, err
 	}
 
+	//　存在する場合はそのまま返す
 	if exists == 1 {
 		jsonData, err := pr.redisClient.Get(ctx, fmt.Sprintf("total_weight_%d_%d", year, month)).Result()
 		if err != nil {
@@ -252,6 +254,7 @@ func (pr *PostRepository) GetUsersTotalWeightInMonth(ctx context.Context, userId
 		totalWeightMap[domain.UserID(result.UserID)] = result.TotalCount
 	}
 
+	// Redisに保存
 	go func(ctx context.Context, twm map[domain.UserID]uint, year int, month int) {
 		jsonData, err := json.Marshal(twm)
 		if err != nil {
