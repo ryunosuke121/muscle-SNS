@@ -32,5 +32,5 @@ type Post struct {
 	Training   *Training `json:"training" gorm:"foreignKey:TrainingID;OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Comment    string    `json:"comment" gorm:"not null"`
 	CreatedAt  time.Time `json:"created_at" gorm:"not null"`
-	ImageUrl   string    `json:"image_url"`
+	ImageName  string    `json:"image_name"`
 }

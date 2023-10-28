@@ -19,14 +19,13 @@ import (
 )
 
 type PostRepository struct {
-	db              *gorm.DB
-	s3Client        *s3.Client
-	s3PresignClient *s3.PresignClient
-	redisClient     *redis.Client
+	db          *gorm.DB
+	s3Client    *s3.Client
+	redisClient *redis.Client
 }
 
-func NewPostRepository(db *gorm.DB, s3Client *s3.Client, s3PresignClient *s3.PresignClient, redisClient *redis.Client) domain.IPostRepository {
-	return &PostRepository{db, s3Client, s3PresignClient, redisClient}
+func NewPostRepository(db *gorm.DB, s3Client *s3.Client, redisClient *redis.Client) domain.IPostRepository {
+	return &PostRepository{db, s3Client, redisClient}
 }
 
 // 投稿を取得する
@@ -39,6 +38,7 @@ func (pr *PostRepository) GetPostsByIds(ctx context.Context, ids []domain.PostID
 
 	var domainPosts []*domain.Post
 	for _, post := range posts {
+		post.ImageName = pr.getImageUrlByFileName(post.ImageName)
 		domainPost := convertToPost(post)
 		domainPosts = append(domainPosts, domainPost)
 	}
@@ -55,6 +55,7 @@ func (pr *PostRepository) GetUserPosts(ctx context.Context, id domain.UserID) ([
 
 	var domainPosts []*domain.Post
 	for _, post := range posts {
+		post.ImageName = pr.getImageUrlByFileName(post.ImageName)
 		domainPost := convertToPost(post)
 		domainPosts = append(domainPosts, domainPost)
 	}
@@ -72,8 +73,8 @@ func (pr *PostRepository) CreatePost(ctx context.Context, post *domain.Post) (*d
 			Weight: post.Training.Weight,
 			Sets:   post.Training.Sets,
 		},
-		Comment:  post.Comment,
-		ImageUrl: post.ImageUrl,
+		Comment:   post.Comment,
+		ImageName: post.ImageName,
 	}
 
 	result := pr.db.WithContext(ctx).Create(&newPost)
@@ -108,10 +109,10 @@ func (pr *PostRepository) GetGroupPosts(ctx context.Context, id domain.UserGroup
 
 	var domainPosts []*domain.Post
 	for _, post := range posts {
+		post.ImageName = pr.getImageUrlByFileName(post.ImageName)
 		domainPost := convertToPost(post)
 		domainPosts = append(domainPosts, domainPost)
 	}
-	log.Print(len(domainPosts))
 	return domainPosts, nil
 }
 
@@ -303,6 +304,10 @@ func (pr *PostRepository) SavePostImage(ctx context.Context, file *multipart.Fil
 	return fileName, nil
 }
 
+func (pr *PostRepository) getImageUrlByFileName(fileName string) string {
+	return fmt.Sprintf("https://%s.s3-%s.amazonaws.com/%s", os.Getenv("BUCKET_NAME"), os.Getenv("AWS_REGION"), fileName)
+}
+
 func convertToPost(post *Post) *domain.Post {
 	domainTraining := domain.Training{
 		ID:     domain.TrainingID(post.Training.ID),
@@ -323,7 +328,7 @@ func convertToPost(post *Post) *domain.Post {
 		Training:  &domainTraining,
 		Comment:   post.Comment,
 		CreatedAt: post.CreatedAt,
-		ImageUrl:  post.ImageUrl,
+		ImageName: post.ImageName,
 	}
 	return &domainPost
 }

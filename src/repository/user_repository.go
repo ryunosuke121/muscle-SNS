@@ -3,10 +3,8 @@ package repository
 import (
 	"context"
 	"fmt"
-	"log"
 	"mime/multipart"
 	"os"
-	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -17,13 +15,12 @@ import (
 )
 
 type userRepository struct {
-	db              *gorm.DB
-	s3Client        *s3.Client
-	s3PresignClient *s3.PresignClient
+	db       *gorm.DB
+	s3Client *s3.Client
 }
 
-func NewUserRepository(db *gorm.DB, s3Client *s3.Client, s3PresignClient *s3.PresignClient) domain.IUserRepository {
-	return &userRepository{db, s3Client, s3PresignClient}
+func NewUserRepository(db *gorm.DB, s3Client *s3.Client) domain.IUserRepository {
+	return &userRepository{db, s3Client}
 }
 
 // ユーザーを作成する
@@ -49,18 +46,14 @@ func (ur *userRepository) GetUsersByIds(ctx context.Context, userIds []domain.Us
 		return nil, result.Error
 	}
 
-	url, err := ur.GetUserImageUrlsByIds(ctx, userIds)
-	if err != nil {
-		return nil, err
-	}
-
 	var domainUsers []*domain.User
 	for _, user := range users {
+		avatarUrl := ur.getImageUrlByFileName(user.ImageUrl)
 		domainUser := domain.User{
 			ID:        domain.UserID(user.ID),
 			Name:      domain.UserName(user.Name),
 			Email:     user.Email,
-			AvatarUrl: url[domain.UserID(user.ID)],
+			AvatarUrl: avatarUrl,
 			UserGroup: &domain.UserGroup{
 				ID:       domain.UserGroupID(user.UserGroup.ID),
 				Name:     user.UserGroup.Name,
@@ -123,28 +116,6 @@ func (ur *userRepository) ChangeUserGroup(ctx context.Context, userId domain.Use
 	return nil
 }
 
-// IDのリストからユーザーの画像のURLを取得する
-func (ur *userRepository) GetUserImageUrlsByIds(ctx context.Context, userIds []domain.UserID) (map[domain.UserID]string, error) {
-	var users []*User
-	result := ur.db.WithContext(ctx).Select("id", "image_url").Find(&users, userIds)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	var fileNames []string
-	for _, user := range users {
-		fileNames = append(fileNames, user.ImageUrl)
-	}
-
-	fileNameUrlMap := ur.getImageUrlByFileName(fileNames)
-	log.Print(fileNameUrlMap)
-	userIDUrlMap := make(map[domain.UserID]string)
-	for _, user := range users {
-		userIDUrlMap[domain.UserID(user.ID)] = fileNameUrlMap[user.ImageUrl]
-	}
-	return userIDUrlMap, nil
-}
-
 // ユーザーの画像を変更する
 func (ur *userRepository) ChangeUserImage(ctx context.Context, userId domain.UserID, file *multipart.FileHeader) error {
 	fileName, err := ur.saveUserImage(ctx, userId, file)
@@ -171,18 +142,14 @@ func (ur *userRepository) GetUsersInGroup(ctx context.Context, groupId domain.Us
 		return nil, result.Error
 	}
 
-	url, err := ur.GetUserImageUrlsByIds(ctx, []domain.UserID{})
-	if err != nil {
-		return nil, err
-	}
-
 	var domainUsers []*domain.User
 	for _, user := range users {
+		avatarUrl := ur.getImageUrlByFileName(user.ImageUrl)
 		domainUser := domain.User{
 			ID:        domain.UserID(user.ID),
 			Name:      domain.UserName(user.Name),
 			Email:     user.Email,
-			AvatarUrl: url[domain.UserID(user.ID)],
+			AvatarUrl: avatarUrl,
 			UserGroup: &domain.UserGroup{
 				ID:       domain.UserGroupID(user.UserGroup.ID),
 				Name:     user.UserGroup.Name,
@@ -225,43 +192,7 @@ func (ur *userRepository) saveUserImage(ctx context.Context, userId domain.UserI
 	return fileName, nil
 }
 
-type Result struct {
-	mu        sync.Mutex
-	resultMap map[string]string
-}
-
-func (r *Result) Set(key string, value string) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.resultMap[key] = value
-}
-
-// 並行処理で画像のURLを取得する
-func (ur *userRepository) getImageUrlByFileName(fileNames []string) map[string]string {
-	var wg sync.WaitGroup
-	r := Result{resultMap: make(map[string]string)}
-
-	for _, fileName := range fileNames {
-		wg.Add(1)
-		go func(fileName string) {
-			if fileName == "" {
-				r.Set(fileName, "")
-				wg.Done()
-				return
-			}
-			// s3から画像を取得
-			param := s3.GetObjectInput{
-				Bucket: aws.String(os.Getenv("BUCKET_NAME")),
-				Key:    aws.String(fileName),
-			}
-			res, err := ur.s3PresignClient.PresignGetObject(context.Background(), &param)
-			if err != nil {
-				return
-			}
-			r.Set(fileName, res.URL)
-			wg.Done()
-		}(fileName)
-	}
-	wg.Wait()
-	return r.resultMap
+// ファイル名からs3に保存されている画像のURLを取得する
+func (ur *userRepository) getImageUrlByFileName(fileName string) string {
+	return fmt.Sprintf("https://%s.s3-%s.amazonaws.com/%s", os.Getenv("BUCKET_NAME"), os.Getenv("AWS_REGION"), fileName)
 }

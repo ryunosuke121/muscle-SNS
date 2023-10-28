@@ -12,7 +12,7 @@ type Post struct {
 	Training  *Training
 	Comment   string
 	CreatedAt time.Time
-	ImageUrl  string
+	ImageName string
 }
 
 type (
