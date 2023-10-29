@@ -15,10 +15,9 @@ import (
 type IPostController interface {
 	GetPostsByIds(c echo.Context) error
 	GetMyPosts(c echo.Context) error
-	GetUserPosts(c echo.Context) error
+	GetPosts(c echo.Context) error
 	CreatePost(c echo.Context) error
 	DeletePost(c echo.Context) error
-	GetGroupPosts(c echo.Context) error
 }
 
 type PostController struct {
@@ -57,7 +56,11 @@ func (pc *PostController) GetMyPosts(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "invalid user id")
 	}
 
-	posts, err := pc.ps.GetUserPosts(ctx, userId)
+	options := &domain.GetPostsOptions{
+		UserId: &userId,
+	}
+
+	posts, err := pc.ps.GetPostsByOptions(ctx, options)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "failed to get posts")
 	}
@@ -65,12 +68,68 @@ func (pc *PostController) GetMyPosts(c echo.Context) error {
 	return c.JSON(http.StatusOK, posts)
 }
 
-// ユーザーの投稿を複数取得する
-func (pc *PostController) GetUserPosts(c echo.Context) error {
-	userId := c.Param("user_id")
+// クエリを指定して投稿を取得する
+func (pc *PostController) GetPosts(c echo.Context) error {
+	options := &domain.GetPostsOptions{}
 
-	posts, err := pc.ps.GetUserPosts(c.Request().Context(), domain.UserID(userId))
+	if userId := c.QueryParam("user_id"); userId == "" {
+		uid := domain.UserID(userId)
+		options.UserId = &uid
+	}
+
+	if menuId := c.QueryParam("menu_id"); menuId == "" {
+		m, err := strconv.Atoi(menuId)
+		if err != nil {
+			return c.String(http.StatusBadRequest, "invalid menu id")
+		}
+		mid := domain.MenuID(m)
+		options.MenuId = &mid
+	}
+
+	if groupId := c.QueryParam("group_id"); groupId == "" {
+		g, err := strconv.Atoi(groupId)
+		if err != nil {
+			return c.String(http.StatusBadRequest, "invalid group id")
+		}
+		gid := domain.UserGroupID(g)
+		options.GroupId = &gid
+	}
+
+	if year := c.QueryParam("year"); year == "" {
+		y, err := strconv.Atoi(year)
+		if err != nil {
+			return c.String(http.StatusBadRequest, "invalid year")
+		}
+		options.Year = &y
+	}
+
+	if month := c.QueryParam("month"); month == "" {
+		m, err := strconv.Atoi(month)
+		if err != nil {
+			return c.String(http.StatusBadRequest, "invalid month")
+		}
+		options.Month = &m
+	}
+
+	if limit := c.QueryParam("limit"); limit == "" {
+		l, err := strconv.Atoi(limit)
+		if err != nil {
+			return c.String(http.StatusBadRequest, "invalid limit")
+		}
+		options.Limit = &l
+	}
+
+	if cursor := c.QueryParam("cursor"); cursor == "" {
+		cs, err := strconv.Atoi(cursor)
+		if err != nil {
+			return c.String(http.StatusBadRequest, "invalid cursor")
+		}
+		options.Cursor = &cs
+	}
+
+	posts, err := pc.ps.GetPostsByOptions(c.Request().Context(), options)
 	if err != nil {
+		log.Print(err.Error())
 		return c.String(http.StatusInternalServerError, "failed to get posts")
 	}
 
@@ -138,19 +197,4 @@ func (pc *PostController) DeletePost(c echo.Context) error {
 	}
 
 	return c.String(http.StatusOK, "success")
-}
-
-// グループの投稿を取得する
-func (pc *PostController) GetGroupPosts(c echo.Context) error {
-	groupId, err := strconv.Atoi(c.Param("group_id"))
-	if err != nil {
-		return c.String(http.StatusBadRequest, "invalid group id")
-	}
-
-	posts, err := pc.ps.GetGroupPosts(c.Request().Context(), domain.UserGroupID(groupId))
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
-	}
-
-	return c.JSON(http.StatusOK, posts)
 }

@@ -17,10 +17,9 @@ type IUserRepository interface {
 
 type IPostRepository interface {
 	GetPostsByIds(ctx context.Context, ids []PostID) ([]*Post, error)                                                                    // 投稿を取得する
-	GetUserPosts(ctx context.Context, userId UserID) ([]*Post, error)                                                                    // ユーザーの投稿を取得する
+	GetPostsByOptions(ctx context.Context, options *GetPostsOptions) ([]*Post, error)                                                    // ユーザーの投稿を取得する
 	CreatePost(ctx context.Context, post *Post) (*Post, error)                                                                           // 投稿を作成する
-	DeletePost(ctx context.Context, postId PostID) error                                                                                 // 投稿を削除する
-	GetGroupPosts(ctx context.Context, groupId UserGroupID) ([]*Post, error)                                                             // グループの投稿を取得する
+	DeletePost(ctx context.Context, postId PostID) error                                                                                 // 投稿を削除する                                                            // グループの投稿を取得する
 	GetTrainingsByIds(ctx context.Context, ids []TrainingID) ([]*Training, error)                                                        // トレーニングを取得する
 	GetUserTrainings(ctx context.Context, userId UserID) ([]*Training, error)                                                            // ユーザーのトレーニングを取得する
 	GetUsersTotalWeightByMenuInMonth(ctx context.Context, userIds []UserID, menuId MenuID, year int, month int) (map[UserID]uint, error) // メニュー別のユーザーの総重量を取得する
@@ -30,4 +29,14 @@ type IPostRepository interface {
 
 type IMenuRepository interface {
 	GetMenuById(ctx context.Context, id MenuID) (Menu, error)
+}
+
+type GetPostsOptions struct {
+	UserId  *UserID
+	MenuId  *MenuID
+	GroupId *UserGroupID
+	Year    *int
+	Month   *int
+	Limit   *int
+	Cursor  *int
 }

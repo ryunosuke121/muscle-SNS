@@ -8,10 +8,9 @@ import (
 
 type IPostService interface {
 	GetPostsByIds(ctx context.Context, ids []domain.PostID) ([]*PostPublic, error)
-	GetUserPosts(ctx context.Context, id domain.UserID) ([]*PostPublic, error)
+	GetPostsByOptions(ctx context.Context, options *domain.GetPostsOptions) ([]*PostPublic, error)
 	CreatePost(ctx context.Context, post *CreatePostRequest) (*PostPublic, error)
 	DeletePost(ctx context.Context, userId domain.UserID, postId domain.PostID) error
-	GetGroupPosts(ctx context.Context, id domain.UserGroupID) ([]*PostPublic, error)
 }
 
 type PostService struct {
@@ -41,37 +40,16 @@ func (ps *PostService) GetPostsByIds(ctx context.Context, ids []domain.PostID) (
 
 	var resPosts []*PostPublic
 	for _, post := range posts {
-		resPost := &PostPublic{
-			ID:        post.ID.String(),
-			UserID:    post.UserID.String(),
-			Comment:   post.Comment,
-			CreatedAt: post.CreatedAt.String(),
-			ImageUrl:  post.ImageName,
-		}
-
-		if post.Training != nil {
-			resPost.Training = &TrainingPublic{
-				ID:     uint(post.Training.ID),
-				UserID: post.Training.UserID.String(),
-				Menu: &Menu{
-					ID:   uint(post.Training.Menu.ID),
-					Name: post.Training.Menu.Name,
-				},
-				Times:     post.Training.Times,
-				Weight:    post.Training.Weight,
-				Sets:      post.Training.Sets,
-				CreatedAt: post.Training.CreatedAt.String(),
-			}
-		}
-
+		resPost := ps.convertPublicPost(post)
 		resPosts = append(resPosts, resPost)
 	}
 
 	return resPosts, nil
 }
 
-func (ps *PostService) GetUserPosts(ctx context.Context, id domain.UserID) ([]*PostPublic, error) {
-	posts, err := ps.pr.GetUserPosts(ctx, id)
+// オプションを指定して投稿を取得する
+func (ps *PostService) GetPostsByOptions(ctx context.Context, options *domain.GetPostsOptions) ([]*PostPublic, error) {
+	posts, err := ps.pr.GetPostsByOptions(ctx, options)
 	if err != nil {
 		return nil, err
 	}
@@ -133,21 +111,6 @@ func (ps *PostService) DeletePost(ctx context.Context, userId domain.UserID, pos
 		return err
 	}
 	return nil
-}
-
-func (ps *PostService) GetGroupPosts(ctx context.Context, id domain.UserGroupID) ([]*PostPublic, error) {
-	posts, err := ps.pr.GetGroupPosts(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	var resPosts []*PostPublic
-	for _, post := range posts {
-		resPost := ps.convertPublicPost(post)
-		resPosts = append(resPosts, resPost)
-	}
-
-	return resPosts, nil
 }
 
 func (ps *PostService) convertPublicPost(post *domain.Post) *PostPublic {
