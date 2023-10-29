@@ -31,8 +31,6 @@ func NewRouter(uc controller.IUserController, pc controller.IPostController, rc 
 	u.PUT("/user_group", uc.UpdateUserGroup)
 	//ユーザーの画像の更新
 	u.PUT("/image", uc.UpdateUserImage)
-	//あるユーザーの投稿を複数取得
-	u.GET("/post/:user_id", pc.GetUserPosts)
 	// 自分の投稿を複数取得する
 	u.GET("/post/my", pc.GetMyPosts)
 	//ユーザーの月別総重量を取得
@@ -41,10 +39,10 @@ func NewRouter(uc controller.IUserController, pc controller.IPostController, rc 
 	p := e.Group("/post", client.CheckToken)
 	// 投稿を複数件取得する
 	p.GET("", pc.GetPostsByIds)
+	// クエリを指定して投稿を取得する
+	p.GET("/query", pc.GetPosts)
 	//投稿の作成
 	p.POST("", pc.CreatePost)
-	//あるグループの投稿の取得
-	p.GET("/group/:group_id", pc.GetGroupPosts)
 	// 投稿を削除する
 	p.DELETE("/:post_id", pc.DeletePost)
 	// //グループ一覧の取得

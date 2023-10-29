@@ -45,10 +45,35 @@ func (pr *PostRepository) GetPostsByIds(ctx context.Context, ids []domain.PostID
 	return domainPosts, nil
 }
 
-// ユーザーの投稿を取得する
-func (pr *PostRepository) GetUserPosts(ctx context.Context, id domain.UserID) ([]*domain.Post, error) {
+// クエリを指定して投稿を取得する
+func (pr *PostRepository) GetPostsByOptions(ctx context.Context, options *domain.GetPostsOptions) ([]*domain.Post, error) {
 	var posts []*Post
-	result := pr.db.WithContext(ctx).Where("posts.user_id = ?", id).Joins("Training").Joins("Training.Menu").Find(&posts)
+	db := pr.db.WithContext(ctx)
+	if options.UserId != nil {
+		db = db.Where("posts.user_id = ?", options.UserId)
+	}
+	if options.MenuId != nil {
+		db = db.Where("trainings.menu_id = ?", options.MenuId)
+	}
+	if options.GroupId != nil {
+		db = db.Joins("LEFT JOIN users ON users.id = posts.user_id").Where("users.user_group_id = ?", options.GroupId)
+	}
+	if options.Year != nil {
+		db = db.Where("extract(year from posts.created_at) = ?", options.Year)
+	}
+	if options.Month != nil {
+		db = db.Where("extract(month from posts.created_at) = ?", options.Month)
+	}
+	if options.Limit != nil {
+		db = db.Limit(*options.Limit)
+	} else {
+		db = db.Limit(10)
+	}
+	if options.Cursor != nil {
+		db = db.Where("posts.id < ?", options.Cursor)
+	}
+
+	result := db.Joins("Training").Joins("Training.Menu").Find(&posts)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -97,23 +122,6 @@ func (pr *PostRepository) DeletePost(ctx context.Context, id domain.PostID) erro
 		return result.Error
 	}
 	return nil
-}
-
-// グループの投稿を取得する\
-func (pr *PostRepository) GetGroupPosts(ctx context.Context, id domain.UserGroupID) ([]*domain.Post, error) {
-	var posts []*Post
-	result := pr.db.WithContext(ctx).Joins("LEFT JOIN users ON users.id = posts.user_id").Where("users.user_group_id = ?", id).Joins("Training").Joins("Training.Menu").Find(&posts)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-
-	var domainPosts []*domain.Post
-	for _, post := range posts {
-		post.ImageName = pr.getImageUrlByFileName(post.ImageName)
-		domainPost := convertToPost(post)
-		domainPosts = append(domainPosts, domainPost)
-	}
-	return domainPosts, nil
 }
 
 // トレーニングを取得する
