@@ -1,0 +1,23 @@
+name: Test CI
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - '**.go'
+      - '.octocov.yml'
+
+jobs:
+  golang-test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.21.2'
+      - name: testing
+        run: go test ./... -coverprofile=coverage.out
+      - name: create report
+        uses: k1LoW/octocov-action@v0
