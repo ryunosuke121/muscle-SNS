@@ -28,7 +28,7 @@ jobs:
           go-version: '1.21.2'
       
       - name: Build
-        run: go build -o muscle-SNS .
+        run: go build -o muscle-SNS ./cmd/main.go
       
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v3
