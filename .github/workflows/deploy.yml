@@ -10,6 +10,8 @@ env:
   AWS_REGION: ap-northeast-1
   AWS_IAM_ROLE: S3FullAccessGitHubActions
   AWS_S3_BUCKET: muscle-sns-build
+  LIGHTSAIL_IP: 18.183.91.153
+  LIGHTSAIL_USER: ec2-user
 
 jobs:
   build-and-upload:
@@ -30,7 +32,7 @@ jobs:
       - name: Build
         run: go build -o muscle-SNS ./cmd/main.go
       
-      - name: configure aws credentials
+      - name: Configure aws credentials
         uses: aws-actions/configure-aws-credentials@v3
         with:
           role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/S3FullAccessGitHubActions
@@ -40,3 +42,33 @@ jobs:
       - name: Upload to S3
         run: |
           aws s3 cp muscle-SNS s3://${{ env.AWS_S3_BUCKET }}/muscle-SNS
+  deploy-to-lightsail:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - name: Configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/S3FullAccessGitHubActions
+          role-session-name: ${{ env.AWS_IAM_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Download from S3
+        run: |
+          aws s3 cp s3://${{ env.AWS_S3_BUCKET }}/muscle-SNS muscle-SNS
+      
+      - name: Copy to Lightsail
+        run: |
+          echo "${{ secrets.DEPLOY_KEY }}" > private_key
+          chmod 600 private_key
+          scp -o StrictHostKeyChecking=no -i private_key muscle-SNS ${{ env.LIGHTSAIL_USER }}@${{ env.LIGHTSAIL_IP }}:muscle-SNS
+      
+      - name: Restart service
+        run: |
+          echo "${{ secrets.DEPLOY_KEY }}" > private_key
+          chmod 600 private_key
+          ssh -o StrictHostKeyChecking=no -i private_key ${{ env.LIGHTSAIL_USER }}@${{ env.LIGHTSAIL_IP }} "sudo systemctl restart muscle-sns.service"
+          
