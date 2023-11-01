@@ -108,7 +108,6 @@ func (rs *RankingService) GetMonthRankingInGroupByMenu(ctx context.Context, grou
 	}
 
 	resUsers = sortUserByTotalWeights(resUsers)
-
 	return resUsers, nil
 }
 
