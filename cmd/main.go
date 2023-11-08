@@ -32,7 +32,9 @@ func main() {
 	rankingController := controller.NewRankingController(rankingService)
 	e := router.NewRouter(userController, postController, rankingController)
 
-	e.Use(middleware.Logger())
+	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+		Format: "time=${time_rfc3339_nano}, method=${method}, uri=${uri}, status=${status}\n",
+	}))
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"http://localhost:3000"},
