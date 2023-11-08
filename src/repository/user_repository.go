@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"mime/multipart"
 	"os"
@@ -33,6 +34,9 @@ func (ur *userRepository) CreateUser(ctx context.Context, user *domain.User) err
 
 	result := ur.db.WithContext(ctx).Create(&newUser)
 	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
+			return domain.ErrUserAlreadyExists
+		}
 		return result.Error
 	}
 	return nil
@@ -43,6 +47,9 @@ func (ur *userRepository) GetUsersByIds(ctx context.Context, userIds []domain.Us
 	var users []*User
 	result := ur.db.WithContext(ctx).Where(userIds).Joins("UserGroup").Find(&users)
 	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, domain.ErrUserNotFound
+		}
 		return nil, result.Error
 	}
 
@@ -70,6 +77,9 @@ func (ur *userRepository) GetUserByEmail(ctx context.Context, email string) (*do
 	var user User
 	result := ur.db.WithContext(ctx).Where("email = ?", email).First(&user)
 	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, domain.ErrUserNotFound
+		}
 		return nil, result.Error
 	}
 
@@ -93,10 +103,13 @@ func (ur *userRepository) ChangeUserName(ctx context.Context, userId domain.User
 	var user User
 	result := ur.db.WithContext(ctx).Model(&user).Where("id = ?", userId).Update("name", userName)
 	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return domain.ErrUserNotFound
+		}
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("user not found or name is same")
+		return domain.ErrUserInfoNotChanged
 	}
 
 	return nil
@@ -107,10 +120,13 @@ func (ur *userRepository) ChangeUserGroup(ctx context.Context, userId domain.Use
 	var user User
 	result := ur.db.WithContext(ctx).Model(&user).Where("id = ?", userId).Update("user_group_id", groupId)
 	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return domain.ErrUserNotFound
+		}
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("user not found or group is same")
+		return domain.ErrUserInfoNotChanged
 	}
 
 	return nil
@@ -126,10 +142,13 @@ func (ur *userRepository) ChangeUserImage(ctx context.Context, userId domain.Use
 	var user User
 	result := ur.db.WithContext(ctx).Model(&user).Where("id = ?", userId).Update("image_url", fileName)
 	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return domain.ErrUserNotFound
+		}
 		return result.Error
 	}
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("user not found")
+		return domain.ErrUserInfoNotChanged
 	}
 
 	return nil
@@ -139,6 +158,9 @@ func (ur *userRepository) GetUsersInGroup(ctx context.Context, groupId domain.Us
 	var users []*User
 	result := ur.db.WithContext(ctx).Where("user_group_id = ?", groupId).Find(&users)
 	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, domain.ErrUserNotFound
+		}
 		return nil, result.Error
 	}
 

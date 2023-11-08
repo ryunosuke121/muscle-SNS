@@ -1,8 +1,9 @@
 package controller
 
 import (
+	"log/slog"
 	"net/http"
-	"strconv"
+	"os"
 
 	"github.com/labstack/echo/v4"
 	"github.com/ryunosuke121/muscle-SNS/src/application"
@@ -49,7 +50,7 @@ func (uc *userController) SignUp(c echo.Context) error {
 
 	userRes, err := uc.us.SignUp(ctx, user_id, domain.UserName(req.Name), email)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return uc.convertError(c, err)
 	}
 
 	return c.JSON(http.StatusCreated, userRes)
@@ -65,7 +66,7 @@ func (uc *userController) GetUsersByIds(c echo.Context) error {
 
 	res, err := uc.us.GetUsersByIds(c.Request().Context(), uids)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return uc.convertError(c, err)
 	}
 	return c.JSON(http.StatusOK, res)
 }
@@ -89,7 +90,7 @@ func (uc *userController) UpdateUserName(c echo.Context) error {
 
 	res, err := uc.us.UpdateUserName(ctx, userId, domain.UserName(req.Name))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return uc.convertError(c, err)
 	}
 
 	return c.JSON(http.StatusOK, res)
@@ -113,7 +114,7 @@ func (uc *userController) UpdateUserGroup(c echo.Context) error {
 
 	res, err := uc.us.UpdateUserGroup(ctx, userId, domain.UserGroupID(req.GroupID))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return uc.convertError(c, err)
 	}
 
 	return c.JSON(http.StatusOK, res)
@@ -132,20 +133,28 @@ func (uc *userController) UpdateUserImage(c echo.Context) error {
 
 	res, err := uc.us.UpdateUserImage(c.Request().Context(), userId, imageFile)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return uc.convertError(c, err)
 	}
 
 	return c.JSON(http.StatusOK, res)
 }
 
-func strConvertUint(strIds []string) ([]uint64, error) {
-	var resultIds []uint64
-	for _, str := range strIds {
-		id, err := strconv.ParseUint(str, 10, 64)
-		if err != nil {
-			return make([]uint64, 0), err
-		}
-		resultIds = append(resultIds, id)
+func (uc *userController) convertError(c echo.Context, err error) error {
+	switch err {
+	case domain.ErrUserNotFound:
+		return c.JSON(http.StatusNotFound, err.Error())
+	case domain.ErrUserAlreadyExists:
+		return c.JSON(http.StatusConflict, err.Error())
+	case domain.ErrUserInfoNotChanged:
+		return c.JSON(http.StatusNotModified, err.Error())
+	default:
+		logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+		logger.Error(
+			"internal server error",
+			slog.Any("method", c.Request().Method),
+			slog.Any("path", c.Request().URL.Path),
+			slog.Any("error", err.Error()),
+		)
+		return c.String(http.StatusInternalServerError, "internal server error")
 	}
-	return resultIds, nil
 }

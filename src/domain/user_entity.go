@@ -1,5 +1,7 @@
 package domain
 
+import "errors"
+
 type User struct {
 	ID        UserID
 	Name      UserName
@@ -30,3 +32,9 @@ func (uid UserID) String() string {
 func (un UserName) String() string {
 	return string(un)
 }
+
+var (
+	ErrUserAlreadyExists  = errors.New("user already exists")
+	ErrUserNotFound       = errors.New("user not found")
+	ErrUserInfoNotChanged = errors.New("user info not changed")
+)
