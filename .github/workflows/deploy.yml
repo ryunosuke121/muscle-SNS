@@ -44,6 +44,7 @@ jobs:
           aws s3 cp muscle-SNS s3://${{ env.AWS_S3_BUCKET }}/muscle-SNS
   deploy-to-lightsail:
     runs-on: ubuntu-latest
+    needs: build-and-upload
     permissions:
       id-token: write
       contents: read
