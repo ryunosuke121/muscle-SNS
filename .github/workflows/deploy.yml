@@ -60,6 +60,12 @@ jobs:
       - name: Download from S3
         run: |
           aws s3 cp s3://${{ env.AWS_S3_BUCKET }}/muscle-SNS muscle-SNS
+
+      - name: Stop the service on Lightsail
+        run: |
+          echo "${{ secrets.DEPLOY_KEY }}" > private_key
+          chmod 600 private_key
+          ssh -o StrictHostKeyChecking=no -i private_key ${{ env.LIGHTSAIL_USER }}@${{ env.LIGHTSAIL_IP }} "sudo systemctl stop muscle-sns.service"
       
       - name: Copy to Lightsail
         run: |
